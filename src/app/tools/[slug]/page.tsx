@@ -5,6 +5,7 @@ import { RelatedTools } from "@/components/tools/related-tools";
 import { ToolContainer } from "@/components/tools/tool-container";
 import { ToolHeader } from "@/components/tools/tool-header";
 import { ToolLayout } from "@/components/tools/tool-layout";
+import { ImageToPdfTool } from "@/features/tools/image-to-pdf/image-to-pdf-tool";
 import { PasswordGeneratorTool } from "@/features/tools/password-generator/password-generator-tool";
 import { getRelatedTools, getToolBySlug, tools } from "@/features/tools/tool-data";
 
@@ -44,6 +45,36 @@ const passwordGeneratorSteps: HowItWorksStep[] = [
   },
 ];
 
+const imageToPdfFaq: FAQItem[] = [
+  {
+    question: "Are my images uploaded anywhere?",
+    answer: "No. Images are converted to PDF locally in your browser and never leave your device.",
+  },
+  {
+    question: "Which image formats are supported?",
+    answer: "You can add JPG, JPEG, PNG, and WEBP images.",
+  },
+  {
+    question: "Can I control the page order?",
+    answer: "Yes. Use the Up and Down controls to reorder images before creating the PDF.",
+  },
+];
+
+const imageToPdfSteps: HowItWorksStep[] = [
+  {
+    title: "Add images",
+    description: "Drag and drop images or browse for JPG, PNG, and WEBP files on your device.",
+  },
+  {
+    title: "Choose PDF options",
+    description: "Pick page size, orientation, margins, and reorder images before conversion.",
+  },
+  {
+    title: "Convert locally",
+    description: "Create and download the PDF entirely inside your browser.",
+  },
+];
+
 export function generateStaticParams() {
   return tools.map((tool) => ({
     slug: tool.slug,
@@ -74,17 +105,25 @@ export default async function ToolPage({ params }: ToolPageProps) {
     notFound();
   }
 
-  const faqItems = slug === "password-generator" ? passwordGeneratorFaq : [];
+  const faqItems =
+    slug === "password-generator" ? passwordGeneratorFaq : slug === "image-to-pdf" ? imageToPdfFaq : [];
   const isPasswordGenerator = slug === "password-generator";
+  const isImageToPdf = slug === "image-to-pdf";
 
   return (
     <ToolLayout>
       <ToolContainer>
-        <ToolHeader statusLabel={isPasswordGenerator ? null : undefined} tool={tool} />
+        <ToolHeader statusLabel={isPasswordGenerator || isImageToPdf ? null : undefined} tool={tool} />
         {isPasswordGenerator ? (
           <>
             <PasswordGeneratorTool />
             <HowItWorks steps={passwordGeneratorSteps} />
+          </>
+        ) : null}
+        {isImageToPdf ? (
+          <>
+            <ImageToPdfTool />
+            <HowItWorks steps={imageToPdfSteps} />
           </>
         ) : null}
         <FAQSection items={faqItems} />
