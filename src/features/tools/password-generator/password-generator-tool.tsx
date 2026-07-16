@@ -53,6 +53,35 @@ function shuffleCharacters(characters: string[]) {
   return shuffled.join("");
 }
 
+function countOccurrences(value: string, search: string) {
+  if (!search) {
+    return 0;
+  }
+
+  let count = 0;
+  let index = value.indexOf(search);
+
+  while (index !== -1) {
+    count += 1;
+    index = value.indexOf(search, index + 1);
+  }
+
+  return count;
+}
+
+function insertAtRandomPosition(value: string, insertion: string) {
+  const insertionIndex = getRandomIndex(value.length + 1);
+
+  return `${value.slice(0, insertionIndex)}${insertion}${value.slice(insertionIndex)}`;
+}
+
+function getPersonalWordRandomPool(allCharacters: string, personalWord: string) {
+  const personalCharacters = new Set([...personalWord]);
+  const filteredCharacters = [...allCharacters].filter((character) => !personalCharacters.has(character)).join("");
+
+  return filteredCharacters || allCharacters;
+}
+
 function filterAmbiguousCharacters(characters: string) {
   return [...characters].filter((character) => !ambiguousCharacters.has(character)).join("");
 }
@@ -107,9 +136,11 @@ export function PasswordGeneratorTool() {
   const [length, setLength] = useState(20);
   const [options, setOptions] = useState<GeneratorOptions>(initialOptions);
   const [excludeAmbiguous, setExcludeAmbiguous] = useState(false);
+  const [personalWord, setPersonalWord] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<GeneratorStatus>("idle");
   const [message, setMessage] = useState("Choose your settings and generate a password.");
+  const hasPersonalWordLengthError = personalWord.length > length;
 
   const enabledSets = useMemo(
     () => getEnabledSets(options, excludeAmbiguous),
@@ -126,7 +157,16 @@ export function PasswordGeneratorTool() {
       window.clearTimeout(generationTimeout.current);
     }
 
-    if (enabledSets.length === 0) {
+    if (hasPersonalWordLengthError) {
+      setStatus("error");
+      setMessage("Password length must be at least as long as the personal word.");
+      setPassword("");
+      return;
+    }
+
+    const randomLength = length - personalWord.length;
+
+    if (randomLength > 0 && enabledSets.length === 0) {
       setStatus("error");
       setMessage("Enable at least one character type.");
       setPassword("");
@@ -138,20 +178,42 @@ export function PasswordGeneratorTool() {
 
     generationTimeout.current = window.setTimeout(() => {
       const allCharacters = enabledSets.join("");
-      const requiredCharacters = enabledSets.map((characters) => characters[getRandomIndex(characters.length)]);
-      const remainingLength = Math.max(length - requiredCharacters.length, 0);
-      const generatedCharacters = [...requiredCharacters];
+      let nextPassword = "";
 
-      for (let index = 0; index < remainingLength; index += 1) {
-        generatedCharacters.push(allCharacters[getRandomIndex(allCharacters.length)]);
+      if (!personalWord) {
+        const requiredCharacters = enabledSets.map((characters) => characters[getRandomIndex(characters.length)]);
+        const remainingLength = Math.max(length - requiredCharacters.length, 0);
+        const generatedCharacters = [...requiredCharacters];
+
+        for (let index = 0; index < remainingLength; index += 1) {
+          generatedCharacters.push(allCharacters[getRandomIndex(allCharacters.length)]);
+        }
+
+        nextPassword = shuffleCharacters(generatedCharacters).slice(0, length);
+      } else {
+        const randomCharacters = getPersonalWordRandomPool(allCharacters, personalWord);
+
+        for (let attempt = 0; attempt < 50; attempt += 1) {
+          const generatedCharacters: string[] = [];
+
+          for (let index = 0; index < randomLength; index += 1) {
+            generatedCharacters.push(randomCharacters[getRandomIndex(randomCharacters.length)]);
+          }
+
+          nextPassword = insertAtRandomPosition(shuffleCharacters(generatedCharacters), personalWord);
+
+          if (countOccurrences(nextPassword, personalWord) === 1) {
+            break;
+          }
+        }
       }
 
-      setPassword(shuffleCharacters(generatedCharacters).slice(0, length));
+      setPassword(nextPassword);
       setStatus("success");
       setMessage("Password generated successfully.");
       generationTimeout.current = null;
     }, 150);
-  }, [enabledSets, length]);
+  }, [enabledSets, hasPersonalWordLengthError, length, personalWord]);
 
   useEffect(() => {
     generatePassword();
@@ -215,7 +277,7 @@ export function PasswordGeneratorTool() {
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
             <button
               className="rounded-full bg-gradient-to-r from-[#4F46E5] via-[#06B6D4] to-[#14B8A6] px-6 py-3 text-sm font-semibold text-white shadow-xl shadow-cyan-500/20 transition hover:-translate-y-0.5 hover:shadow-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
-              disabled={status === "loading"}
+              disabled={status === "loading" || hasPersonalWordLengthError}
               onClick={generatePassword}
               type="button"
             >
@@ -223,7 +285,7 @@ export function PasswordGeneratorTool() {
             </button>
             <button
               className="rounded-full border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-slate-200 transition hover:-translate-y-0.5 hover:border-white/30 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
-              disabled={status === "loading"}
+              disabled={status === "loading" || hasPersonalWordLengthError}
               onClick={generatePassword}
               type="button"
             >
@@ -282,6 +344,24 @@ export function PasswordGeneratorTool() {
             type="range"
             value={length}
           />
+          <div className="mt-6">
+            <label className="text-sm font-semibold text-white" htmlFor="personal-word">
+              Personal word (optional)
+            </label>
+            <input
+              className="mt-3 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/40 focus:bg-white/[0.07]"
+              id="personal-word"
+              onChange={(event) => setPersonalWord(event.target.value)}
+              placeholder="e.g. anushka, apk, work, github"
+              type="text"
+              value={personalWord}
+            />
+            {hasPersonalWordLengthError ? (
+              <p className="mt-2 text-sm text-red-300" role="alert">
+                Password length must be at least as long as the personal word.
+              </p>
+            ) : null}
+          </div>
           <div className="mt-6 grid gap-3">
             <Toggle checked={options.uppercase} label="Uppercase" onChange={() => toggleOption("uppercase")} />
             <Toggle checked={options.lowercase} label="Lowercase" onChange={() => toggleOption("lowercase")} />
