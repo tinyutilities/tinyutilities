@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
-import { Footer } from "@/components/landing/footer";
-import { Navbar } from "@/components/landing/navbar";
-import { ToolPageLayout } from "@/components/tools/tool-page-layout";
+import { FAQSection, type FAQItem } from "@/components/tools/faq-section";
+import { RelatedTools } from "@/components/tools/related-tools";
+import { ToolContainer } from "@/components/tools/tool-container";
+import { ToolHeader } from "@/components/tools/tool-header";
+import { ToolLayout } from "@/components/tools/tool-layout";
 import { getRelatedTools, getToolBySlug, tools } from "@/features/tools/tool-data";
 
 type ToolPageProps = {
@@ -9,6 +11,17 @@ type ToolPageProps = {
     slug: string;
   }>;
 };
+
+const passwordGeneratorFaq: FAQItem[] = [
+  {
+    question: "Can I generate passwords yet?",
+    answer: "Not yet. This page is a placeholder for the future Password Generator tool.",
+  },
+  {
+    question: "Will this tool be free?",
+    answer: "Yes. TinyUtility is planned around free, fast utilities for everyday productivity.",
+  },
+];
 
 export function generateStaticParams() {
   return tools.map((tool) => ({
@@ -40,13 +53,15 @@ export default async function ToolPage({ params }: ToolPageProps) {
     notFound();
   }
 
+  const faqItems = slug === "password-generator" ? passwordGeneratorFaq : [];
+
   return (
-    <>
-      <Navbar />
-      <main>
-        <ToolPageLayout relatedTools={getRelatedTools(slug)} tool={tool} />
-      </main>
-      <Footer />
-    </>
+    <ToolLayout>
+      <ToolContainer>
+        <ToolHeader tool={tool} />
+        <FAQSection items={faqItems} />
+        <RelatedTools tools={getRelatedTools(slug)} />
+      </ToolContainer>
+    </ToolLayout>
   );
 }
