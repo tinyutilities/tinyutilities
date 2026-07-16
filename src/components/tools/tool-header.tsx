@@ -4,9 +4,10 @@ import type { Tool } from "@/features/tools/tool-data";
 
 type ToolHeaderProps = {
   tool: Tool;
+  statusLabel?: string | null;
 };
 
-export function ToolHeader({ tool }: ToolHeaderProps) {
+export function ToolHeader({ tool, statusLabel = "Coming Soon" }: ToolHeaderProps) {
   return (
     <>
       <Link className="text-sm font-medium text-cyan-300 transition hover:text-cyan-100" href="/tools">
@@ -24,9 +25,11 @@ export function ToolHeader({ tool }: ToolHeaderProps) {
           {tool.title}
         </h1>
         <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">{tool.description}</p>
-        <div className="mt-8 inline-flex rounded-full border border-teal-300/25 bg-teal-300/10 px-4 py-2 text-sm font-semibold text-teal-200">
-          Coming Soon
-        </div>
+        {statusLabel ? (
+          <div className="mt-8 inline-flex rounded-full border border-teal-300/25 bg-teal-300/10 px-4 py-2 text-sm font-semibold text-teal-200">
+            {statusLabel}
+          </div>
+        ) : null}
       </section>
     </>
   );

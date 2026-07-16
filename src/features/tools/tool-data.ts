@@ -81,7 +81,7 @@ export const tools: Tool[] = [
   },
   {
     title: "Password Generator",
-    description: "Create strong passwords for safer accounts.",
+    description: "Create strong, random passwords privately in your browser.",
     slug: "password-generator",
     category: "Developer Tools",
     icon: "shield",

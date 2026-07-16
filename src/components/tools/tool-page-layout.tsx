@@ -8,12 +8,18 @@ type ToolPageLayoutProps = {
   tool: Tool;
   relatedTools: Tool[];
   faqItems?: FAQItem[];
+  statusLabel?: string | null;
 };
 
-export function ToolPageLayout({ tool, relatedTools, faqItems = [] }: ToolPageLayoutProps) {
+export function ToolPageLayout({
+  tool,
+  relatedTools,
+  faqItems = [],
+  statusLabel,
+}: ToolPageLayoutProps) {
   return (
     <ToolContainer>
-      <ToolHeader tool={tool} />
+      <ToolHeader statusLabel={statusLabel} tool={tool} />
       <FAQSection items={faqItems} />
       <RelatedTools tools={relatedTools} />
     </ToolContainer>
