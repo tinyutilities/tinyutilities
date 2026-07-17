@@ -87,9 +87,9 @@ export const tools: Tool[] = [
     icon: "shield",
   },
   {
-    title: "QR Generator",
-    description: "Generate QR codes for links and simple text.",
-    slug: "qr-generator",
+    title: "QR Code Generator",
+    description: "Generate QR codes for URLs, text, emails, Wi-Fi credentials, and more.",
+    slug: "qr-code-generator",
     category: "Developer Tools",
     icon: "qr",
   },

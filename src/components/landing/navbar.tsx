@@ -20,12 +20,36 @@ export function Navbar() {
         <div className="hidden items-center gap-8 md:flex">
           {navItems.map((item) => (
             <Link
-              className="text-sm font-medium text-slate-300 transition hover:text-white"
-              href={item.href}
-              key={item.label}
-            >
-              {item.label}
-            </Link>
+  key={item.label}
+  href={item.href}
+  className="
+    group
+    relative
+    text-sm
+    font-medium
+    text-slate-300
+    transition-all
+    duration-300
+    hover:text-white
+  "
+>
+  {item.label}
+
+  <span
+    className="
+      absolute
+      -bottom-1
+      left-0
+      h-[2px]
+      w-0
+      rounded-full
+      bg-cyan-400
+      transition-all
+      duration-300
+      group-hover:w-full
+    "
+  />
+</Link>
           ))}
         </div>
       </nav>
