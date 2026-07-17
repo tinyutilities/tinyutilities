@@ -7,6 +7,7 @@ import { ToolHeader } from "@/components/tools/tool-header";
 import { ToolLayout } from "@/components/tools/tool-layout";
 import { ImageToPdfTool } from "@/features/tools/image-to-pdf/image-to-pdf-tool";
 import { PasswordGeneratorTool } from "@/features/tools/password-generator/password-generator-tool";
+import { ImageCompressorTool } from "@/features/tools/image-compressor/image-compressor-tool";
 import { getRelatedTools, getToolBySlug, tools } from "@/features/tools/tool-data";
 
 type ToolPageProps = {
@@ -108,12 +109,22 @@ export default async function ToolPage({ params }: ToolPageProps) {
   const faqItems =
     slug === "password-generator" ? passwordGeneratorFaq : slug === "image-to-pdf" ? imageToPdfFaq : [];
   const isPasswordGenerator = slug === "password-generator";
-  const isImageToPdf = slug === "image-to-pdf";
+const isImageToPdf = slug === "image-to-pdf";
+const isImageCompressor = slug === "image-compressor";
 
   return (
     <ToolLayout>
       <ToolContainer>
-        <ToolHeader statusLabel={isPasswordGenerator || isImageToPdf ? null : undefined} tool={tool} />
+        <ToolHeader
+    statusLabel={
+        isPasswordGenerator ||
+        isImageToPdf ||
+        isImageCompressor
+            ? null
+            : undefined
+    }
+    tool={tool}
+/>
         {isPasswordGenerator ? (
           <>
             <PasswordGeneratorTool />
@@ -126,6 +137,11 @@ export default async function ToolPage({ params }: ToolPageProps) {
             <HowItWorks steps={imageToPdfSteps} />
           </>
         ) : null}
+        {isImageCompressor ? (
+  <>
+    <ImageCompressorTool />
+  </>
+) : null}
         <FAQSection items={faqItems} />
         <RelatedTools tools={getRelatedTools(slug)} />
       </ToolContainer>
