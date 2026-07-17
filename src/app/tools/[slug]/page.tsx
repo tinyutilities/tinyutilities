@@ -10,6 +10,7 @@ import { ImageCompressorTool } from "@/features/tools/image-compressor/image-com
 import { ImageConverterTool } from "@/features/tools/image-converter/image-converter-tool";
 import { ImageToPdfTool } from "@/features/tools/image-to-pdf/image-to-pdf-tool";
 import { PasswordGeneratorTool } from "@/features/tools/password-generator/password-generator-tool";
+import { QrCodeGeneratorTool } from "@/features/tools/qr-code-generator/qr-code-generator-tool";
 import { getRelatedTools, getToolBySlug, tools } from "@/features/tools/tool-data";
 import { WordCounterTool } from "@/features/tools/word-counter/word-counter-tool";
 import { createSeoMetadata } from "@/lib/seo";
@@ -198,6 +199,64 @@ const imageConverterMetadata: Metadata = createSeoMetadata({
   path: "/tools/image-converter",
 });
 
+const qrCodeGeneratorFaq: FAQItem[] = [
+  {
+    question: "What is a QR code?",
+    answer:
+      "A QR code is a scannable two-dimensional barcode that can store text, links, contact details, Wi-Fi credentials, and other information.",
+  },
+  {
+    question: "Is this QR Code Generator free?",
+    answer: "Yes. TinyUtility lets you generate and download QR codes for free.",
+  },
+  {
+    question: "Are my QR codes uploaded anywhere?",
+    answer:
+      "No. QR codes are generated entirely in your browser, and your text never leaves your device.",
+  },
+  {
+    question: "Can I generate Wi-Fi QR codes?",
+    answer:
+      "Yes. Enter Wi-Fi credentials in the standard Wi-Fi QR format and the generated code can be scanned by supported devices.",
+  },
+  {
+    question: "Can I use these QR codes commercially?",
+    answer:
+      "Yes. You can use the QR codes you create for personal or commercial projects.",
+  },
+];
+
+const qrCodeGeneratorSteps: HowItWorksStep[] = [
+  {
+    title: "Enter your content",
+    description: "Paste a URL, message, email address, phone number, or Wi-Fi credentials into the editor.",
+  },
+  {
+    title: "Preview instantly",
+    description: "TinyUtility generates the QR code locally in your browser as soon as the text changes.",
+  },
+  {
+    title: "Download or copy",
+    description: "Save the QR code as a PNG or copy the original text when you need to reuse it.",
+  },
+];
+
+const qrCodeGeneratorMetadata: Metadata = createSeoMetadata({
+  title: "Free QR Code Generator | TinyUtility",
+  description:
+    "Generate QR codes instantly for URLs, text, emails, Wi-Fi credentials, and more. Free online QR Code Generator by TinyUtility.",
+  keywords: [
+    "qr code generator",
+    "free qr code",
+    "generate qr code",
+    "wifi qr code",
+    "url qr code",
+    "private qr generator",
+    "TinyUtility",
+  ],
+  path: "/tools/qr-code-generator",
+});
+
 const wordCounterFaq: FAQItem[] = [
   {
     question: "Is my text uploaded anywhere?",
@@ -274,6 +333,10 @@ export async function generateMetadata({ params }: ToolPageProps) {
     return imageConverterMetadata;
   }
 
+  if (slug === "qr-code-generator") {
+    return qrCodeGeneratorMetadata;
+  }
+
   if (slug === "word-counter") {
     return wordCounterMetadata;
   }
@@ -302,13 +365,16 @@ export default async function ToolPage({ params }: ToolPageProps) {
           ? imageCompressorFaq
           : slug === "image-converter"
             ? imageConverterFaq
-            : slug === "word-counter"
-              ? wordCounterFaq
-              : [];
+            : slug === "qr-code-generator"
+              ? qrCodeGeneratorFaq
+              : slug === "word-counter"
+                ? wordCounterFaq
+                : [];
   const isPasswordGenerator = slug === "password-generator";
   const isImageToPdf = slug === "image-to-pdf";
   const isImageCompressor = slug === "image-compressor";
   const isImageConverter = slug === "image-converter";
+  const isQrCodeGenerator = slug === "qr-code-generator";
   const isWordCounter = slug === "word-counter";
 
   return (
@@ -316,7 +382,14 @@ export default async function ToolPage({ params }: ToolPageProps) {
       <ToolContainer>
         <ToolHeader
           statusLabel={
-            isPasswordGenerator || isImageToPdf || isImageCompressor || isImageConverter || isWordCounter ? null : undefined
+            isPasswordGenerator ||
+            isImageToPdf ||
+            isImageCompressor ||
+            isImageConverter ||
+            isQrCodeGenerator ||
+            isWordCounter
+              ? null
+              : undefined
           }
           tool={tool}
         />
@@ -342,6 +415,12 @@ export default async function ToolPage({ params }: ToolPageProps) {
           <>
             <ImageConverterTool />
             <HowItWorks steps={imageConverterSteps} />
+          </>
+        ) : null}
+        {isQrCodeGenerator ? (
+          <>
+            <QrCodeGeneratorTool />
+            <HowItWorks steps={qrCodeGeneratorSteps} />
           </>
         ) : null}
         {isWordCounter ? (
