@@ -7,6 +7,7 @@ import { ToolContainer } from "@/components/tools/tool-container";
 import { ToolHeader } from "@/components/tools/tool-header";
 import { ToolLayout } from "@/components/tools/tool-layout";
 import { ImageCompressorTool } from "@/features/tools/image-compressor/image-compressor-tool";
+import { ImageConverterTool } from "@/features/tools/image-converter/image-converter-tool";
 import { ImageToPdfTool } from "@/features/tools/image-to-pdf/image-to-pdf-tool";
 import { PasswordGeneratorTool } from "@/features/tools/password-generator/password-generator-tool";
 import { getRelatedTools, getToolBySlug, tools } from "@/features/tools/tool-data";
@@ -150,6 +151,81 @@ const imageCompressorMetadata: Metadata = {
   },
 };
 
+const imageConverterFaq: FAQItem[] = [
+  {
+    question: "Are my images uploaded anywhere?",
+    answer: "No. Images are converted entirely in your browser and never leave your device.",
+  },
+  {
+    question: "Which conversions are supported?",
+    answer: "You can convert between JPEG, PNG, and WebP formats in either direction.",
+  },
+  {
+    question: "Can I convert multiple images at once?",
+    answer:
+      "Yes. Add multiple images, convert the batch locally, then download individual files or a ZIP archive.",
+  },
+  {
+    question: "Can I paste images from the clipboard?",
+    answer:
+      "Yes. Copy an image from another app, then paste while this page is open to add it to the converter.",
+  },
+  {
+    question: "Will transparency be preserved?",
+    answer:
+      "PNG and WebP can preserve transparency. JPEG cannot, so transparent pixels are flattened to white when exporting as JPEG.",
+  },
+];
+
+const imageConverterSteps: HowItWorksStep[] = [
+  {
+    title: "Add images",
+    description: "Drag and drop, browse, or paste JPG, PNG, and WebP images from your clipboard.",
+  },
+  {
+    title: "Choose a format",
+    description: "Pick JPEG, PNG, or WebP and adjust quality when the selected format supports it.",
+  },
+  {
+    title: "Convert locally",
+    description: "Create converted images in your browser, then download each file or the whole batch as a ZIP.",
+  },
+];
+
+const imageConverterMetadata: Metadata = {
+  title: "Free Image Converter | TinyUtility",
+  description:
+    "Convert JPG, PNG, and WebP images online for free. Batch convert images privately in your browser with no uploads.",
+  keywords: [
+    "image converter",
+    "jpg to png",
+    "png to jpg",
+    "jpg to webp",
+    "png to webp",
+    "webp to jpg",
+    "webp to png",
+    "batch image converter",
+    "private image conversion",
+    "TinyUtility",
+  ],
+  alternates: {
+    canonical: "/tools/image-converter",
+  },
+  openGraph: {
+    title: "Free Image Converter | TinyUtility",
+    description:
+      "Convert JPG, PNG, and WebP images online for free with private browser-only processing.",
+    type: "website",
+    url: "/tools/image-converter",
+  },
+  twitter: {
+    card: "summary",
+    title: "Free Image Converter | TinyUtility",
+    description:
+      "Convert JPG, PNG, and WebP images online for free with private browser-only processing.",
+  },
+};
+
 export function generateStaticParams() {
   return tools.map((tool) => ({
     slug: tool.slug,
@@ -168,6 +244,10 @@ export async function generateMetadata({ params }: ToolPageProps) {
 
   if (slug === "image-compressor") {
     return imageCompressorMetadata;
+  }
+
+  if (slug === "image-converter") {
+    return imageConverterMetadata;
   }
 
   return {
@@ -191,15 +271,21 @@ export default async function ToolPage({ params }: ToolPageProps) {
         ? imageToPdfFaq
         : slug === "image-compressor"
           ? imageCompressorFaq
-          : [];
+          : slug === "image-converter"
+            ? imageConverterFaq
+            : [];
   const isPasswordGenerator = slug === "password-generator";
   const isImageToPdf = slug === "image-to-pdf";
   const isImageCompressor = slug === "image-compressor";
+  const isImageConverter = slug === "image-converter";
 
   return (
     <ToolLayout>
       <ToolContainer>
-        <ToolHeader statusLabel={isPasswordGenerator || isImageToPdf || isImageCompressor ? null : undefined} tool={tool} />
+        <ToolHeader
+          statusLabel={isPasswordGenerator || isImageToPdf || isImageCompressor || isImageConverter ? null : undefined}
+          tool={tool}
+        />
         {isPasswordGenerator ? (
           <>
             <PasswordGeneratorTool />
@@ -216,6 +302,12 @@ export default async function ToolPage({ params }: ToolPageProps) {
           <>
             <ImageCompressorTool />
             <HowItWorks steps={imageCompressorSteps} />
+          </>
+        ) : null}
+        {isImageConverter ? (
+          <>
+            <ImageConverterTool />
+            <HowItWorks steps={imageConverterSteps} />
           </>
         ) : null}
         <FAQSection items={faqItems} />

@@ -60,7 +60,7 @@ export const tools: Tool[] = [
   },
   {
     title: "Image Converter",
-    description: "Convert images between common formats.",
+    description: "Convert JPG, PNG, and WebP images privately in your browser.",
     slug: "image-converter",
     category: "Image Tools",
     icon: "convert",
