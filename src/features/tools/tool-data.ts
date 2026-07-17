@@ -40,7 +40,7 @@ export const toolCategories: ToolCategory[] = [
     title: "Developer Tools",
     description: "Format, generate, and inspect common developer assets.",
     slug: "developer",
-    toolCount: 2,
+    toolCount: 3,
   },
   {
     title: "Text Tools",

@@ -5,9 +5,10 @@ export type HowItWorksStep = {
 
 type HowItWorksProps = {
   steps: HowItWorksStep[];
+  title?: string;
 };
 
-export function HowItWorks({ steps }: HowItWorksProps) {
+export function HowItWorks({ steps, title = "How this tool works" }: HowItWorksProps) {
   if (steps.length === 0) {
     return null;
   }
@@ -18,7 +19,7 @@ export function HowItWorks({ steps }: HowItWorksProps) {
         How it works
       </p>
       <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white" id="how-it-works">
-        Private password generation in your browser
+        {title}
       </h2>
       <div className="mt-8 grid gap-5 md:grid-cols-3">
         {steps.map((step, index) => (

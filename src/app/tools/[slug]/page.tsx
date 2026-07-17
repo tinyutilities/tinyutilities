@@ -9,6 +9,7 @@ import { ToolLayout } from "@/components/tools/tool-layout";
 import { ImageCompressorTool } from "@/features/tools/image-compressor/image-compressor-tool";
 import { ImageConverterTool } from "@/features/tools/image-converter/image-converter-tool";
 import { ImageToPdfTool } from "@/features/tools/image-to-pdf/image-to-pdf-tool";
+import { JsonFormatterTool } from "@/features/tools/json-formatter/json-formatter-tool";
 import { PasswordGeneratorTool } from "@/features/tools/password-generator/password-generator-tool";
 import { PdfMergerTool } from "@/features/tools/pdf-merger/pdf-merger-tool";
 import { QrCodeGeneratorTool } from "@/features/tools/qr-code-generator/qr-code-generator-tool";
@@ -364,6 +365,59 @@ const wordCounterMetadata: Metadata = createSeoMetadata({
   path: "/tools/word-counter",
 });
 
+const jsonFormatterFaq: FAQItem[] = [
+  {
+    question: "Is my JSON uploaded anywhere?",
+    answer: "No. JSON formatting, minifying, validation, copying, and downloads all happen in your browser.",
+  },
+  {
+    question: "Can I format large JSON files?",
+    answer:
+      "Yes. The editor uses a lightweight textarea and only parses when needed, so typing stays responsive for typical large JSON files.",
+  },
+  {
+    question: "Does formatting change my data?",
+    answer:
+      "Formatting preserves valid JSON data and only changes whitespace. Minify removes unnecessary whitespace.",
+  },
+  {
+    question: "Why are Copy and Download disabled?",
+    answer:
+      "Copy and Download are enabled only when the editor contains valid JSON, which prevents saving an invalid result by mistake.",
+  },
+];
+
+const jsonFormatterSteps: HowItWorksStep[] = [
+  {
+    title: "Add JSON",
+    description: "Paste, type, upload, or drag and drop a .json file into the editor.",
+  },
+  {
+    title: "Validate locally",
+    description: "Live validation checks the JSON in your browser and shows useful error details when possible.",
+  },
+  {
+    title: "Format or minify",
+    description: "Pretty print with 2 or 4 spaces, minify, copy, or download the valid JSON file.",
+  },
+];
+
+const jsonFormatterMetadata: Metadata = createSeoMetadata({
+  title: "Free JSON Formatter | TinyUtility",
+  description:
+    "Format, minify, and validate JSON online for free. A fast private JSON formatter that runs entirely in your browser.",
+  keywords: [
+    "json formatter",
+    "format json",
+    "json validator",
+    "json minifier",
+    "pretty print json",
+    "private json formatter",
+    "TinyUtility",
+  ],
+  path: "/tools/json-formatter",
+});
+
 export function generateStaticParams() {
   return tools.map((tool) => ({
     slug: tool.slug,
@@ -400,6 +454,10 @@ export async function generateMetadata({ params }: ToolPageProps) {
     return wordCounterMetadata;
   }
 
+  if (slug === "json-formatter") {
+    return jsonFormatterMetadata;
+  }
+
   return createSeoMetadata({
     title: `${tool.title} | TinyUtility`,
     description: tool.description,
@@ -430,6 +488,8 @@ export default async function ToolPage({ params }: ToolPageProps) {
                 ? qrCodeGeneratorFaq
                 : slug === "word-counter"
                   ? wordCounterFaq
+                  : slug === "json-formatter"
+                    ? jsonFormatterFaq
                   : [];
   const isPasswordGenerator = slug === "password-generator";
   const isImageToPdf = slug === "image-to-pdf";
@@ -438,6 +498,7 @@ export default async function ToolPage({ params }: ToolPageProps) {
   const isImageConverter = slug === "image-converter";
   const isQrCodeGenerator = slug === "qr-code-generator";
   const isWordCounter = slug === "word-counter";
+  const isJsonFormatter = slug === "json-formatter";
 
   return (
     <ToolLayout>
@@ -450,7 +511,8 @@ export default async function ToolPage({ params }: ToolPageProps) {
             isImageCompressor ||
             isImageConverter ||
             isQrCodeGenerator ||
-            isWordCounter
+            isWordCounter ||
+            isJsonFormatter
               ? null
               : undefined
           }
@@ -459,43 +521,49 @@ export default async function ToolPage({ params }: ToolPageProps) {
         {isPasswordGenerator ? (
           <>
             <PasswordGeneratorTool />
-            <HowItWorks steps={passwordGeneratorSteps} />
+            <HowItWorks steps={passwordGeneratorSteps} title="Private password generation in your browser" />
           </>
         ) : null}
         {isImageToPdf ? (
           <>
             <ImageToPdfTool />
-            <HowItWorks steps={imageToPdfSteps} />
+            <HowItWorks steps={imageToPdfSteps} title="Image to PDF conversion in your browser" />
           </>
         ) : null}
         {isPdfMerger ? (
           <>
             <PdfMergerTool />
-            <HowItWorks steps={pdfMergerSteps} />
+            <HowItWorks steps={pdfMergerSteps} title="Private PDF merging in your browser" />
           </>
         ) : null}
         {isImageCompressor ? (
           <>
             <ImageCompressorTool />
-            <HowItWorks steps={imageCompressorSteps} />
+            <HowItWorks steps={imageCompressorSteps} title="Private image compression in your browser" />
           </>
         ) : null}
         {isImageConverter ? (
           <>
             <ImageConverterTool />
-            <HowItWorks steps={imageConverterSteps} />
+            <HowItWorks steps={imageConverterSteps} title="Private image conversion in your browser" />
           </>
         ) : null}
         {isQrCodeGenerator ? (
           <>
             <QrCodeGeneratorTool />
-            <HowItWorks steps={qrCodeGeneratorSteps} />
+            <HowItWorks steps={qrCodeGeneratorSteps} title="Private QR code generation in your browser" />
           </>
         ) : null}
         {isWordCounter ? (
           <>
             <WordCounterTool />
-            <HowItWorks steps={wordCounterSteps} />
+            <HowItWorks steps={wordCounterSteps} title="Private word counting in your browser" />
+          </>
+        ) : null}
+        {isJsonFormatter ? (
+          <>
+            <JsonFormatterTool />
+            <HowItWorks steps={jsonFormatterSteps} title="Private JSON formatting in your browser" />
           </>
         ) : null}
         <FAQSection items={faqItems} />
