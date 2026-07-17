@@ -10,6 +10,7 @@ import { ImageCompressorTool } from "@/features/tools/image-compressor/image-com
 import { ImageConverterTool } from "@/features/tools/image-converter/image-converter-tool";
 import { ImageToPdfTool } from "@/features/tools/image-to-pdf/image-to-pdf-tool";
 import { PasswordGeneratorTool } from "@/features/tools/password-generator/password-generator-tool";
+import { PdfMergerTool } from "@/features/tools/pdf-merger/pdf-merger-tool";
 import { QrCodeGeneratorTool } from "@/features/tools/qr-code-generator/qr-code-generator-tool";
 import { getRelatedTools, getToolBySlug, tools } from "@/features/tools/tool-data";
 import { WordCounterTool } from "@/features/tools/word-counter/word-counter-tool";
@@ -80,6 +81,60 @@ const imageToPdfSteps: HowItWorksStep[] = [
     description: "Create and download the PDF entirely inside your browser.",
   },
 ];
+
+const pdfMergerFaq: FAQItem[] = [
+  {
+    question: "Are my PDFs uploaded anywhere?",
+    answer: "No. PDF files are loaded, reordered, rotated, and merged entirely in your browser.",
+  },
+  {
+    question: "Can I merge password-protected PDFs?",
+    answer:
+      "Password-protected PDFs are currently unsupported. Remove the password first, then add the file again.",
+  },
+  {
+    question: "Can I rotate individual pages?",
+    answer:
+      "This tool rotates every page in a selected PDF. Individual page editing belongs in a future PDF Editor tool.",
+  },
+  {
+    question: "Can I change the merge order?",
+    answer:
+      "Yes. Drag PDF cards into the order you want, or use the Up and Down controls for precise reordering.",
+  },
+];
+
+const pdfMergerSteps: HowItWorksStep[] = [
+  {
+    title: "Add PDFs",
+    description: "Drop PDF files into the upload area or choose them from your device.",
+  },
+  {
+    title: "Arrange and rotate",
+    description: "Reorder the PDF queue and rotate complete documents before merging.",
+  },
+  {
+    title: "Merge locally",
+    description: "Create one combined PDF in your browser, rename it, and download the result.",
+  },
+];
+
+const pdfMergerMetadata: Metadata = createSeoMetadata({
+  title: "Free PDF Merger | TinyUtility",
+  description:
+    "Merge PDF files online for free. Reorder, rotate, and combine PDFs privately in your browser with no uploads.",
+  keywords: [
+    "pdf merger",
+    "merge pdf",
+    "combine pdf",
+    "free pdf merger",
+    "reorder pdf",
+    "rotate pdf",
+    "private pdf merger",
+    "TinyUtility",
+  ],
+  path: "/tools/pdf-merger",
+});
 
 const imageCompressorFaq: FAQItem[] = [
   {
@@ -333,6 +388,10 @@ export async function generateMetadata({ params }: ToolPageProps) {
     return imageConverterMetadata;
   }
 
+  if (slug === "pdf-merger") {
+    return pdfMergerMetadata;
+  }
+
   if (slug === "qr-code-generator") {
     return qrCodeGeneratorMetadata;
   }
@@ -361,17 +420,20 @@ export default async function ToolPage({ params }: ToolPageProps) {
       ? passwordGeneratorFaq
       : slug === "image-to-pdf"
         ? imageToPdfFaq
-        : slug === "image-compressor"
-          ? imageCompressorFaq
-          : slug === "image-converter"
-            ? imageConverterFaq
-            : slug === "qr-code-generator"
-              ? qrCodeGeneratorFaq
-              : slug === "word-counter"
-                ? wordCounterFaq
-                : [];
+        : slug === "pdf-merger"
+          ? pdfMergerFaq
+          : slug === "image-compressor"
+            ? imageCompressorFaq
+            : slug === "image-converter"
+              ? imageConverterFaq
+              : slug === "qr-code-generator"
+                ? qrCodeGeneratorFaq
+                : slug === "word-counter"
+                  ? wordCounterFaq
+                  : [];
   const isPasswordGenerator = slug === "password-generator";
   const isImageToPdf = slug === "image-to-pdf";
+  const isPdfMerger = slug === "pdf-merger";
   const isImageCompressor = slug === "image-compressor";
   const isImageConverter = slug === "image-converter";
   const isQrCodeGenerator = slug === "qr-code-generator";
@@ -384,6 +446,7 @@ export default async function ToolPage({ params }: ToolPageProps) {
           statusLabel={
             isPasswordGenerator ||
             isImageToPdf ||
+            isPdfMerger ||
             isImageCompressor ||
             isImageConverter ||
             isQrCodeGenerator ||
@@ -403,6 +466,12 @@ export default async function ToolPage({ params }: ToolPageProps) {
           <>
             <ImageToPdfTool />
             <HowItWorks steps={imageToPdfSteps} />
+          </>
+        ) : null}
+        {isPdfMerger ? (
+          <>
+            <PdfMergerTool />
+            <HowItWorks steps={pdfMergerSteps} />
           </>
         ) : null}
         {isImageCompressor ? (
