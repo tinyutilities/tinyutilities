@@ -1,6 +1,6 @@
-import { popularTools } from "./landing-data";
 import { SectionHeading } from "./section-heading";
-import { ToolCard } from "./tool-card";
+import { ToolCard } from "@/components/tools/tool-card";
+import { tools } from "@/features/tools/tool-data";
 
 export function PopularTools() {
   return (
@@ -13,8 +13,8 @@ export function PopularTools() {
         />
 
         <div className="mt-12 grid auto-rows-fr gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {popularTools.map((tool) => (
-            <ToolCard key={tool.title} {...tool} />
+          {tools.map((tool) => (
+            <ToolCard key={tool.slug} tool={tool} />
           ))}
         </div>
       </div>

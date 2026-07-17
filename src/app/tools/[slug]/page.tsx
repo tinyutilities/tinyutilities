@@ -11,6 +11,7 @@ import { ImageConverterTool } from "@/features/tools/image-converter/image-conve
 import { ImageToPdfTool } from "@/features/tools/image-to-pdf/image-to-pdf-tool";
 import { PasswordGeneratorTool } from "@/features/tools/password-generator/password-generator-tool";
 import { getRelatedTools, getToolBySlug, tools } from "@/features/tools/tool-data";
+import { WordCounterTool } from "@/features/tools/word-counter/word-counter-tool";
 import { createSeoMetadata } from "@/lib/seo";
 
 type ToolPageProps = {
@@ -197,6 +198,58 @@ const imageConverterMetadata: Metadata = createSeoMetadata({
   path: "/tools/image-converter",
 });
 
+const wordCounterFaq: FAQItem[] = [
+  {
+    question: "Is my text uploaded anywhere?",
+    answer: "No. Word counting and text analysis happen entirely in your browser.",
+  },
+  {
+    question: "Can it handle large documents?",
+    answer:
+      "Yes. Analysis is debounced and uses efficient string scanning so typing, pasting, and scrolling stay responsive.",
+  },
+  {
+    question: "How is reading time calculated?",
+    answer: "Reading time is estimated at 225 words per minute. Speaking time uses 150 words per minute.",
+  },
+  {
+    question: "Can I upload a text file?",
+    answer: "Yes. Choose a TXT file and it will be read locally by your browser without uploading it.",
+  },
+];
+
+const wordCounterSteps: HowItWorksStep[] = [
+  {
+    title: "Paste or type text",
+    description: "Add text directly in the editor or load a TXT file from your device.",
+  },
+  {
+    title: "Review live stats",
+    description: "Word, character, sentence, paragraph, line, and timing metrics update as you write.",
+  },
+  {
+    title: "Copy or export",
+    description: "Copy the current text, clear the editor, or download the text as a TXT file.",
+  },
+];
+
+const wordCounterMetadata: Metadata = createSeoMetadata({
+  title: "Free Word Counter | TinyUtility",
+  description:
+    "Count words, characters, sentences, paragraphs, lines, reading time, and speaking time with a private browser-based word counter.",
+  keywords: [
+    "word counter",
+    "character counter",
+    "sentence counter",
+    "paragraph counter",
+    "reading time calculator",
+    "speaking time calculator",
+    "text analysis",
+    "TinyUtility",
+  ],
+  path: "/tools/word-counter",
+});
+
 export function generateStaticParams() {
   return tools.map((tool) => ({
     slug: tool.slug,
@@ -219,6 +272,10 @@ export async function generateMetadata({ params }: ToolPageProps) {
 
   if (slug === "image-converter") {
     return imageConverterMetadata;
+  }
+
+  if (slug === "word-counter") {
+    return wordCounterMetadata;
   }
 
   return createSeoMetadata({
@@ -245,17 +302,22 @@ export default async function ToolPage({ params }: ToolPageProps) {
           ? imageCompressorFaq
           : slug === "image-converter"
             ? imageConverterFaq
-            : [];
+            : slug === "word-counter"
+              ? wordCounterFaq
+              : [];
   const isPasswordGenerator = slug === "password-generator";
   const isImageToPdf = slug === "image-to-pdf";
   const isImageCompressor = slug === "image-compressor";
   const isImageConverter = slug === "image-converter";
+  const isWordCounter = slug === "word-counter";
 
   return (
     <ToolLayout>
       <ToolContainer>
         <ToolHeader
-          statusLabel={isPasswordGenerator || isImageToPdf || isImageCompressor || isImageConverter ? null : undefined}
+          statusLabel={
+            isPasswordGenerator || isImageToPdf || isImageCompressor || isImageConverter || isWordCounter ? null : undefined
+          }
           tool={tool}
         />
         {isPasswordGenerator ? (
@@ -280,6 +342,12 @@ export default async function ToolPage({ params }: ToolPageProps) {
           <>
             <ImageConverterTool />
             <HowItWorks steps={imageConverterSteps} />
+          </>
+        ) : null}
+        {isWordCounter ? (
+          <>
+            <WordCounterTool />
+            <HowItWorks steps={wordCounterSteps} />
           </>
         ) : null}
         <FAQSection items={faqItems} />
