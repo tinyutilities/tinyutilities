@@ -11,6 +11,7 @@ import { ImageConverterTool } from "@/features/tools/image-converter/image-conve
 import { ImageToPdfTool } from "@/features/tools/image-to-pdf/image-to-pdf-tool";
 import { PasswordGeneratorTool } from "@/features/tools/password-generator/password-generator-tool";
 import { getRelatedTools, getToolBySlug, tools } from "@/features/tools/tool-data";
+import { createSeoMetadata } from "@/lib/seo";
 
 type ToolPageProps = {
   params: Promise<{
@@ -119,7 +120,7 @@ const imageCompressorSteps: HowItWorksStep[] = [
   },
 ];
 
-const imageCompressorMetadata: Metadata = {
+const imageCompressorMetadata: Metadata = createSeoMetadata({
   title: "Free Image Compressor | TinyUtility",
   description:
     "Compress JPG, PNG, and WebP images online for free. Resize, convert formats, and download optimized images privately in your browser.",
@@ -133,23 +134,8 @@ const imageCompressorMetadata: Metadata = {
     "private image compression",
     "TinyUtility",
   ],
-  alternates: {
-    canonical: "/tools/image-compressor",
-  },
-  openGraph: {
-    title: "Free Image Compressor | TinyUtility",
-    description:
-      "Compress JPG, PNG, and WebP images online for free with private browser-only processing.",
-    type: "website",
-    url: "/tools/image-compressor",
-  },
-  twitter: {
-    card: "summary",
-    title: "Free Image Compressor | TinyUtility",
-    description:
-      "Compress JPG, PNG, and WebP images online for free with private browser-only processing.",
-  },
-};
+  path: "/tools/image-compressor",
+});
 
 const imageConverterFaq: FAQItem[] = [
   {
@@ -192,7 +178,7 @@ const imageConverterSteps: HowItWorksStep[] = [
   },
 ];
 
-const imageConverterMetadata: Metadata = {
+const imageConverterMetadata: Metadata = createSeoMetadata({
   title: "Free Image Converter | TinyUtility",
   description:
     "Convert JPG, PNG, and WebP images online for free. Batch convert images privately in your browser with no uploads.",
@@ -208,23 +194,8 @@ const imageConverterMetadata: Metadata = {
     "private image conversion",
     "TinyUtility",
   ],
-  alternates: {
-    canonical: "/tools/image-converter",
-  },
-  openGraph: {
-    title: "Free Image Converter | TinyUtility",
-    description:
-      "Convert JPG, PNG, and WebP images online for free with private browser-only processing.",
-    type: "website",
-    url: "/tools/image-converter",
-  },
-  twitter: {
-    card: "summary",
-    title: "Free Image Converter | TinyUtility",
-    description:
-      "Convert JPG, PNG, and WebP images online for free with private browser-only processing.",
-  },
-};
+  path: "/tools/image-converter",
+});
 
 export function generateStaticParams() {
   return tools.map((tool) => ({
@@ -250,10 +221,11 @@ export async function generateMetadata({ params }: ToolPageProps) {
     return imageConverterMetadata;
   }
 
-  return {
+  return createSeoMetadata({
     title: `${tool.title} | TinyUtility`,
     description: tool.description,
-  };
+    path: `/tools/${tool.slug}`,
+  });
 }
 
 export default async function ToolPage({ params }: ToolPageProps) {

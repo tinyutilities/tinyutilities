@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import { FAQSection, type FAQItem } from "@/components/tools/faq-section";
 import { RelatedTools } from "@/components/tools/related-tools";
 import { ToolContainer } from "@/components/tools/tool-container";
@@ -6,6 +5,7 @@ import { ToolHeader } from "@/components/tools/tool-header";
 import { ToolLayout } from "@/components/tools/tool-layout";
 import { QrCodeGeneratorTool } from "@/features/tools/qr-code-generator/qr-code-generator-tool";
 import { getToolBySlug, tools } from "@/features/tools/tool-data";
+import { createSeoMetadata } from "@/lib/seo";
 
 const qrCodeGenerator = getToolBySlug("qr-code-generator") ?? {
   title: "QR Code Generator",
@@ -47,27 +47,12 @@ const relatedTools = ["password-generator", "image-to-pdf", "image-compressor"]
   .map((slug) => tools.find((tool) => tool.slug === slug))
   .filter((tool): tool is NonNullable<typeof tool> => Boolean(tool));
 
-export const metadata: Metadata = {
+export const metadata = createSeoMetadata({
   title: "Free QR Code Generator | TinyUtility",
   description:
     "Generate QR codes instantly for URLs, text, emails, Wi-Fi credentials, and more. Free online QR Code Generator by TinyUtility.",
-  alternates: {
-    canonical: "/tools/qr-code-generator",
-  },
-  openGraph: {
-    title: "Free QR Code Generator | TinyUtility",
-    description:
-      "Generate QR codes instantly for URLs, text, emails, Wi-Fi credentials, and more. Free online QR Code Generator by TinyUtility.",
-    type: "website",
-    url: "/tools/qr-code-generator",
-  },
-  twitter: {
-    card: "summary",
-    title: "Free QR Code Generator | TinyUtility",
-    description:
-      "Generate QR codes instantly for URLs, text, emails, Wi-Fi credentials, and more. Free online QR Code Generator by TinyUtility.",
-  },
-};
+  path: "/tools/qr-code-generator",
+});
 
 export default function QrCodeGeneratorPage() {
   return (

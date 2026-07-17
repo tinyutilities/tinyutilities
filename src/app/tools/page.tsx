@@ -2,11 +2,13 @@ import { Footer } from "@/components/landing/footer";
 import { Navbar } from "@/components/landing/navbar";
 import { ToolsDirectory } from "@/components/tools/tools-directory";
 import { toolCategories, tools } from "@/features/tools/tool-data";
+import { createSeoMetadata } from "@/lib/seo";
 
-export const metadata = {
+export const metadata = createSeoMetadata({
   title: "Tools | TinyUtility",
   description: "Browse free online utilities for images, PDFs, text, developers, and productivity.",
-};
+  path: "/tools",
+});
 
 export default function ToolsPage() {
   return (
