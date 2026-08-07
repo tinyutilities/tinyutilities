@@ -1,6 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ErrorCard,
+  EstimatePanel,
+  formatBytes,
+  ProcessingState,
+  ProgressIndicator,
+  SelectedFileRow,
+  SuccessCard,
+  UploadCard,
+} from "@/components/upload";
+import type { UploadPhase } from "@/components/upload";
 
 type UploadedImage = {
   id: string;
@@ -31,18 +42,9 @@ type ConversionFailure = {
 };
 
 type OutputMimeType = "image/jpeg" | "image/png" | "image/webp";
-type ToolStatus = "empty" | "loading" | "success" | "error";
 
 const acceptedTypes = ["image/jpeg", "image/png", "image/webp"];
 const maxFileSize = 100 * 1024 * 1024;
-const defaultMessage = "Add JPG, PNG, or WEBP images to convert them locally.";
-const conversionQuotes = [
-  "Switching pixels into a new outfit.",
-  "Converting images locally...",
-  "TinyUtility is changing formats...",
-  "Almost there...",
-  "Preparing your converted images...",
-];
 
 const outputOptions: Array<[OutputMimeType, string]> = [
   ["image/jpeg", "JPEG"],
@@ -62,30 +64,11 @@ const labelByMimeType: Record<OutputMimeType, string> = {
   "image/webp": "WebP",
 };
 
-function formatBytes(bytes: number) {
-  const units = ["B", "KB", "MB", "GB"];
-  let size = bytes;
-  let unitIndex = 0;
-
-  while (size >= 1024 && unitIndex < units.length - 1) {
-    size /= 1024;
-    unitIndex += 1;
-  }
-
-  return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
-}
-
 function getConvertedFilename(filename: string, mimeType: OutputMimeType) {
   const extension = extensionByMimeType[mimeType];
   const baseName = filename.replace(/\.[^/.]+$/, "") || "image";
 
   return `${baseName}_converted_tinyutility.${extension}`;
-}
-
-function getRandomQuote() {
-  const index = Math.floor(Math.random() * conversionQuotes.length);
-
-  return conversionQuotes[index];
 }
 
 function createImageRecord(file: File): Promise<UploadedImage> {
@@ -298,18 +281,18 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 export function ImageConverterTool() {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const imagesRef = useRef<UploadedImage[]>([]);
   const resultsRef = useRef<ConvertedImage[]>([]);
+  const downloadedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [results, setResults] = useState<ConvertedImage[]>([]);
   const [failures, setFailures] = useState<ConversionFailure[]>([]);
   const [quality, setQuality] = useState(90);
   const [outputFormat, setOutputFormat] = useState<OutputMimeType>("image/webp");
-  const [status, setStatus] = useState<ToolStatus>("empty");
-  const [message, setMessage] = useState(defaultMessage);
-  const [progress, setProgress] = useState(0);
-  const [quote, setQuote] = useState(conversionQuotes[0]);
+  const [phase, setPhase] = useState<UploadPhase>("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number | undefined>(undefined);
+  const [justDownloaded, setJustDownloaded] = useState(false);
 
   const totalSize = useMemo(
     () => images.reduce((total, image) => total + image.file.size, 0),
@@ -320,9 +303,17 @@ export function ImageConverterTool() {
     outputFormat === "image/jpeg" && images.some((image) => image.file.type === "image/png" || image.file.type === "image/webp");
   const showQualityControl = outputFormat === "image/jpeg" || outputFormat === "image/webp";
   const imageCountLabel = images.length === 1 ? "1 image selected" : `${images.length} images selected`;
-  const statusColor =
-    status === "error" ? "text-red-300" : status === "success" ? "text-teal-300" : "text-slate-400";
-  const convertDisabled = images.length === 0 || status === "loading" || allImagesAlreadyMatch;
+  const isBusy = phase === "preparing" || phase === "processing";
+  const convertDisabled = images.length === 0 || isBusy || allImagesAlreadyMatch;
+  const showSuccessHero = phase === "completed" && results.length > 0;
+
+  const aggregate = useMemo(() => {
+    const originalSize = results.reduce((total, result) => total + result.originalSize, 0);
+    const convertedSize = results.reduce((total, result) => total + result.convertedSize, 0);
+    const reduction = originalSize > 0 ? Math.round((1 - convertedSize / originalSize) * 100) : 0;
+
+    return { originalSize, convertedSize, reduction };
+  }, [results]);
 
   useEffect(() => {
     imagesRef.current = images;
@@ -353,6 +344,7 @@ export function ImageConverterTool() {
     return () => {
       imagesRef.current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
       resultsRef.current.forEach((result) => URL.revokeObjectURL(result.previewUrl));
+      if (downloadedTimeoutRef.current) clearTimeout(downloadedTimeoutRef.current);
     };
   }, []);
 
@@ -360,20 +352,20 @@ export function ImageConverterTool() {
     results.forEach((result) => URL.revokeObjectURL(result.previewUrl));
     setResults([]);
     setFailures([]);
-    setProgress(0);
+    setProgress(undefined);
   };
 
   const addFiles = async (fileList: FileList | File[]) => {
     const files = Array.from(fileList);
-    const unsupportedFiles = files.filter((file) => !acceptedTypes.includes(file.type));
     const oversizedFiles = files.filter((file) => acceptedTypes.includes(file.type) && file.size > maxFileSize);
     const validFiles = files.filter((file) => acceptedTypes.includes(file.type) && file.size <= maxFileSize);
 
     clearResults();
+    setErrorMessage(null);
 
     if (validFiles.length === 0) {
-      setStatus("error");
-      setMessage(
+      setPhase("error");
+      setErrorMessage(
         oversizedFiles.length > 0
           ? "Each image must be 100 MB or smaller."
           : "Please choose JPG, PNG, or WEBP images.",
@@ -381,22 +373,16 @@ export function ImageConverterTool() {
       return;
     }
 
-    setStatus("loading");
-    setMessage("Loading images...");
+    setPhase("preparing");
 
     try {
       const nextImages = await Promise.all(validFiles.map(createImageRecord));
 
       setImages((currentImages) => [...currentImages, ...nextImages]);
-      setStatus("success");
-      setMessage([
-        `${nextImages.length} image${nextImages.length === 1 ? "" : "s"} added.`,
-        unsupportedFiles.length > 0 ? "Unsupported files were skipped." : "",
-        oversizedFiles.length > 0 ? "Files over 100 MB were skipped." : "",
-      ].filter(Boolean).join(" "));
+      setPhase("idle");
     } catch (error) {
-      setStatus("error");
-      setMessage(error instanceof Error ? error.message : "Could not load one of the selected images.");
+      setPhase("error");
+      setErrorMessage(error instanceof Error ? error.message : "Could not load one of the selected images.");
     }
   };
 
@@ -412,8 +398,7 @@ export function ImageConverterTool() {
       const nextImages = currentImages.filter((item) => item.id !== id);
 
       if (nextImages.length === 0) {
-        setStatus("empty");
-        setMessage(defaultMessage);
+        setPhase("idle");
       }
 
       return nextImages;
@@ -424,27 +409,27 @@ export function ImageConverterTool() {
     clearResults();
     images.forEach((image) => URL.revokeObjectURL(image.previewUrl));
     setImages([]);
-    setStatus("empty");
-    setMessage(defaultMessage);
+    setPhase("idle");
+    setErrorMessage(null);
+    setJustDownloaded(false);
   };
 
   const convertImages = async () => {
     if (images.length === 0) {
-      setStatus("error");
-      setMessage("Add at least one image before converting.");
+      setPhase("error");
+      setErrorMessage("Add at least one image before converting.");
       return;
     }
 
     if (allImagesAlreadyMatch) {
-      setStatus("error");
-      setMessage(`Every selected image is already ${labelByMimeType[outputFormat]}. Choose another output format.`);
+      setPhase("error");
+      setErrorMessage(`Every selected image is already ${labelByMimeType[outputFormat]}. Choose another output format.`);
       return;
     }
 
     clearResults();
-    setStatus("loading");
-    setMessage("Converting images locally...");
-    setQuote(getRandomQuote());
+    setPhase("processing");
+    setProgress(0);
 
     const nextResults: ConvertedImage[] = [];
     const nextFailures: ConversionFailure[] = [];
@@ -482,38 +467,32 @@ export function ImageConverterTool() {
     setResults(nextResults);
     setFailures(nextFailures);
 
-    if (nextResults.length > 0 && nextFailures.length > 0) {
-      setStatus("error");
-      setMessage(`${nextResults.length} image${nextResults.length === 1 ? "" : "s"} converted. Some images failed.`);
-      return;
-    }
-
     if (nextResults.length > 0) {
-      setStatus("success");
-      setMessage(`${nextResults.length} image${nextResults.length === 1 ? "" : "s"} converted successfully.`);
+      setPhase("completed");
       return;
     }
 
-    setStatus("error");
-    setMessage("No images could be converted. Try another output format or smaller files.");
+    setPhase("error");
+    setErrorMessage("No images could be converted. Try another output format or smaller files.");
+  };
+
+  const markDownloaded = () => {
+    setJustDownloaded(true);
+    if (downloadedTimeoutRef.current) clearTimeout(downloadedTimeoutRef.current);
+    downloadedTimeoutRef.current = setTimeout(() => setJustDownloaded(false), 3000);
   };
 
   const downloadAll = async () => {
-    if (results.length === 0) {
-      setStatus("error");
-      setMessage("Convert images before downloading a ZIP.");
-      return;
-    }
+    if (results.length === 0) return;
 
     try {
       const zipBlob = await createZipArchive(results);
 
       downloadBlob(zipBlob, "tinyutility-converted-images.zip");
-      setStatus("success");
-      setMessage("ZIP downloaded successfully.");
+      markDownloaded();
     } catch {
-      setStatus("error");
-      setMessage("Could not create the ZIP archive. Try downloading images individually.");
+      setPhase("error");
+      setErrorMessage("Could not create the ZIP archive. Try downloading images individually.");
     }
   };
 
@@ -523,267 +502,213 @@ export function ImageConverterTool() {
         Images are converted entirely in your browser. Nothing is uploaded.
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl shadow-black/20 sm:p-8">
-          <div
-            className="rounded-2xl border border-dashed border-cyan-300/35 bg-[#080b1a]/70 p-8 text-center transition hover:border-cyan-200/60"
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => {
-              event.preventDefault();
-              void addFiles(event.dataTransfer.files);
-            }}
-          >
-            <p className="text-lg font-semibold text-white">Drop images here</p>
-            <p className="mt-2 text-sm leading-6 text-slate-400">
-              JPG, JPEG, PNG, and WEBP images are supported. Paste copied images from your clipboard too.
-            </p>
-            <button
-              className="mt-6 rounded-full bg-gradient-to-r from-[#4F46E5] via-[#06B6D4] to-[#14B8A6] px-6 py-3 text-sm font-semibold text-white shadow-xl shadow-cyan-500/20 transition hover:-translate-y-0.5 hover:shadow-cyan-500/30 focus:outline-none focus:ring-2 focus:ring-cyan-300/50"
-              onClick={() => fileInputRef.current?.click()}
-              type="button"
-            >
-              Browse Images
-            </button>
-            <input
-              accept="image/jpeg,image/png,image/webp"
-              className="sr-only"
-              multiple
-              onChange={(event) => {
-                if (event.target.files) {
-                  void addFiles(event.target.files);
-                  event.target.value = "";
-                }
-              }}
-              ref={fileInputRef}
-              type="file"
-            />
-          </div>
-
-          <div className="mt-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-            <div>
-              <p className="text-sm font-semibold text-white">{imageCountLabel}</p>
-              {images.length > 0 ? (
-                <p className="mt-1 text-sm text-slate-400">Total input size: {formatBytes(totalSize)}</p>
-              ) : null}
-            </div>
-            <button
-              className="rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={images.length === 0 || status === "loading"}
-              onClick={clearImages}
-              type="button"
-            >
-              Clear all
-            </button>
-          </div>
-
-          {images.length > 0 ? (
-            <div className="mt-6 grid gap-4">
-              {images.map((image) => (
-                <article
-                  className="grid gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:grid-cols-[96px_1fr_auto]"
-                  key={image.id}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element -- Local object URLs cannot be optimized by next/image. */}
-                  <img
-                    alt={`Preview of ${image.file.name}`}
-                    className="h-24 w-24 rounded-xl object-cover ring-1 ring-white/10"
-                    src={image.previewUrl}
-                  />
-                  <div className="min-w-0">
-                    <h3 className="truncate text-sm font-semibold text-white">{image.file.name}</h3>
-                    <p className="mt-2 text-sm text-slate-400">
-                      {image.width} x {image.height} px - {formatBytes(image.file.size)} -{" "}
-                      {labelByMimeType[image.file.type as OutputMimeType]}
-                    </p>
-                  </div>
-                  <div className="flex items-center sm:justify-end">
-                    <button
-                      className="rounded-full border border-red-300/25 px-3 py-2 text-xs font-semibold text-red-200 transition hover:border-red-200/50 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-                      disabled={status === "loading"}
-                      onClick={() => removeImage(image.id)}
-                      type="button"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center text-sm text-slate-400">
-              No images selected yet.
-            </div>
-          )}
-        </div>
-
-        <aside className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl shadow-black/20 sm:p-8">
-          <h2 className="text-lg font-semibold text-white">Conversion options</h2>
-          <div className="mt-6 grid gap-5">
-            <SelectField
-              label="Output format"
-              onChange={(value) => setOutputFormat(value as OutputMimeType)}
-              options={outputOptions}
-              value={outputFormat}
-            />
-
-            {showQualityControl ? (
-              <label className="block" htmlFor="conversion-quality">
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-sm font-semibold text-white">Quality</span>
-                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm font-semibold text-cyan-200">
-                    {quality}
-                  </span>
-                </div>
-                <input
-                  className="mt-4 w-full accent-cyan-300"
-                  id="conversion-quality"
-                  max="100"
-                  min="1"
-                  onChange={(event) => setQuality(Number(event.target.value))}
-                  type="range"
-                  value={quality}
-                />
-              </label>
-            ) : null}
-
-            {transparencyWarning ? (
-              <p className="rounded-2xl border border-yellow-300/20 bg-yellow-300/10 p-4 text-sm leading-6 text-yellow-100">
-                JPEG does not preserve transparency. Transparent pixels will become white.
-              </p>
-            ) : null}
-
-            {allImagesAlreadyMatch ? (
-              <p className="rounded-2xl border border-white/10 bg-[#080b1a]/70 p-4 text-sm leading-6 text-slate-300">
-                Every selected image is already {labelByMimeType[outputFormat]}. Choose another output format to convert.
-              </p>
-            ) : null}
-          </div>
-
-          <button
-            className="mt-6 w-full rounded-full bg-gradient-to-r from-[#4F46E5] via-[#06B6D4] to-[#14B8A6] px-6 py-3 text-sm font-semibold text-white shadow-xl shadow-cyan-500/20 transition hover:-translate-y-0.5 hover:shadow-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
-            disabled={convertDisabled}
-            onClick={convertImages}
-            type="button"
-          >
-            {status === "loading" ? "Converting..." : "Convert Images"}
-          </button>
-
-          <div className="mt-5">
-            {status === "loading" ? (
-              <p className="mb-3 text-sm font-medium text-cyan-100">{quote}</p>
-            ) : null}
-            <div
-              aria-label={`Image conversion progress: ${progress}%`}
-              aria-valuemax={100}
-              aria-valuemin={0}
-              aria-valuenow={progress}
-              className="h-2 overflow-hidden rounded-full bg-white/10"
-              role="progressbar"
-            >
-              <div
-                className="h-full rounded-full bg-teal-300 transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <p className={`mt-3 text-sm ${statusColor}`} role={status === "error" ? "alert" : "status"}>
-              {allImagesAlreadyMatch && status !== "loading"
-                ? `Every selected image is already ${labelByMimeType[outputFormat]}.`
-                : message}
-            </p>
-          </div>
-
-          {results.length > 0 ? (
-            <button
-              className="mt-5 w-full rounded-full border border-cyan-300/25 bg-cyan-300/10 px-6 py-3 text-center text-sm font-semibold text-cyan-100 transition hover:-translate-y-0.5 hover:border-cyan-200/50 hover:bg-cyan-300/15"
-              onClick={downloadAll}
-              type="button"
-            >
-              Download All (ZIP)
-            </button>
-          ) : null}
-        </aside>
-      </div>
-
-      {failures.length > 0 ? (
-        <div className="rounded-3xl border border-red-300/20 bg-red-300/10 p-5 sm:p-6">
-          <h2 className="text-lg font-semibold text-white">Could not convert</h2>
-          <div className="mt-4 grid gap-3">
-            {failures.map((failure) => (
-              <p className="rounded-2xl border border-red-300/15 bg-[#080b1a]/60 p-4 text-sm text-red-100" key={failure.id}>
-                <span className="font-semibold">{failure.filename}:</span> {failure.reason}
-              </p>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      {results.length > 0 ? (
-        <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl shadow-black/20 sm:p-8">
-          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
-            <div>
-              <h2 className="text-xl font-semibold text-white">Converted images</h2>
-              <p className="mt-2 text-sm text-slate-400">
-                Download images individually or save every successful result as a ZIP.
-              </p>
-            </div>
-            <button
-              className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-5 py-2.5 text-sm font-semibold text-cyan-100 transition hover:border-cyan-200/50 hover:bg-cyan-300/15"
-              onClick={downloadAll}
-              type="button"
-            >
-              Download All (ZIP)
-            </button>
-          </div>
-
-          <div className="mt-6 grid gap-5 lg:grid-cols-2">
-            {results.map((result) => {
-              const originalImage = images.find((image) => image.id === result.sourceId);
-
-              return (
-                <article className="rounded-2xl border border-white/10 bg-[#080b1a]/70 p-4" key={result.id}>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {originalImage ? (
-                      <figure>
-                        {/* eslint-disable-next-line @next/next/no-img-element -- Local object URLs cannot be optimized by next/image. */}
-                        <img
-                          alt={`Original preview of ${result.filename}`}
-                          className="h-40 w-full rounded-xl object-cover ring-1 ring-white/10"
-                          src={originalImage.previewUrl}
-                        />
-                        <figcaption className="mt-2 text-xs font-medium text-slate-400">Original</figcaption>
-                      </figure>
-                    ) : null}
-                    <figure>
-                      {/* eslint-disable-next-line @next/next/no-img-element -- Local object URLs cannot be optimized by next/image. */}
-                      <img
-                        alt={`Converted preview of ${result.filename}`}
-                        className="h-40 w-full rounded-xl object-cover ring-1 ring-white/10"
-                        src={result.previewUrl}
-                      />
-                      <figcaption className="mt-2 text-xs font-medium text-slate-400">Converted</figcaption>
-                    </figure>
-                  </div>
-
-                  <h3 className="mt-4 truncate text-sm font-semibold text-white">{result.filename}</h3>
-                  <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                    <ResultStat label="Original size" value={formatBytes(result.originalSize)} />
-                    <ResultStat label="Converted size" value={formatBytes(result.convertedSize)} />
-                    <ResultStat label="Resolution" value={`${result.width} x ${result.height}`} />
-                    <ResultStat label="Output format" value={labelByMimeType[result.format]} />
-                  </dl>
+      {showSuccessHero ? (
+        <SuccessCard
+          downloadLabel={results.length > 1 ? "Download All (ZIP)" : "Download"}
+          justDownloaded={justDownloaded}
+          onDownload={results.length > 1 ? downloadAll : () => {
+            downloadBlob(results[0].blob, results[0].downloadName);
+            markDownloaded();
+          }}
+          heroStat={
+            aggregate.reduction > 0
+              ? { label: "Saved", value: `${aggregate.reduction}%` }
+              : { label: "Converted to", value: labelByMimeType[outputFormat] }
+          }
+          onReset={clearImages}
+          stats={[
+            { label: "Original", value: formatBytes(aggregate.originalSize) },
+            { label: "New", value: formatBytes(aggregate.convertedSize) },
+            { label: "Images", value: `${results.length}` },
+          ]}
+          subtitle={`Converted ${results.length} image${results.length === 1 ? "" : "s"} to ${labelByMimeType[outputFormat]}.${
+            failures.length > 0 ? ` ${failures.length} could not be converted.` : ""
+          }`}
+        >
+          <div className="grid gap-3 lg:grid-cols-2">
+            {results.map((result) => (
+              <SelectedFileRow
+                actions={
                   <button
-                    className="mt-5 w-full rounded-full border border-cyan-300/25 bg-cyan-300/10 px-5 py-2.5 text-sm font-semibold text-cyan-100 transition hover:-translate-y-0.5 hover:border-cyan-200/50 hover:bg-cyan-300/15"
-                    onClick={() => downloadBlob(result.blob, result.downloadName)}
+                    className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-4 py-2 text-xs font-semibold text-cyan-100 transition hover:border-cyan-200/50 hover:bg-cyan-300/15"
+                    onClick={() => {
+                      downloadBlob(result.blob, result.downloadName);
+                      markDownloaded();
+                    }}
                     type="button"
                   >
                     Download
                   </button>
-                </article>
-              );
-            })}
+                }
+                detail={`${result.width} x ${result.height} px · ${formatBytes(result.originalSize)} → ${formatBytes(result.convertedSize)}`}
+                key={result.id}
+                name={result.filename}
+                sizeLabel={formatBytes(result.convertedSize)}
+                thumbnailUrl={result.previewUrl}
+                typeLabel={labelByMimeType[result.format]}
+              />
+            ))}
           </div>
+          {failures.length > 0 ? (
+            <div className="mt-4 grid gap-2">
+              {failures.map((failure) => (
+                <ErrorCard
+                  key={failure.id}
+                  message={failure.reason}
+                  title={`Could not convert ${failure.filename}`}
+                />
+              ))}
+            </div>
+          ) : null}
+        </SuccessCard>
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl shadow-black/20 sm:p-8">
+            {images.length === 0 ? (
+              <UploadCard
+                accept="image/jpeg,image/png,image/webp"
+                disabled={isBusy}
+                formatsLabel="JPG, PNG, and WEBP"
+                helperText="You can also paste copied images from your clipboard."
+                multiple
+                onFiles={(files) => void addFiles(files)}
+              />
+            ) : (
+              <UploadCard
+                accept="image/jpeg,image/png,image/webp"
+                compact
+                disabled={isBusy}
+                formatsLabel="JPG, PNG, and WEBP"
+                multiple
+                onFiles={(files) => void addFiles(files)}
+              />
+            )}
+
+            <div className="mt-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <div>
+                <p className="text-sm font-semibold text-white">{imageCountLabel}</p>
+                {images.length > 0 ? (
+                  <p className="mt-1 text-sm text-slate-400">Total input size: {formatBytes(totalSize)}</p>
+                ) : null}
+              </div>
+              <button
+                className="rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={images.length === 0 || isBusy}
+                onClick={clearImages}
+                type="button"
+              >
+                Clear all
+              </button>
+            </div>
+
+            {images.length > 0 ? (
+              <div className="mt-6 grid gap-3">
+                {images.map((image) => (
+                  <SelectedFileRow
+                    actions={
+                      <button
+                        aria-label={`Remove ${image.file.name}`}
+                        className="rounded-full border border-red-300/25 px-3 py-2 text-xs font-semibold text-red-200 transition hover:border-red-200/50 hover:text-white focus:outline-none focus:ring-2 focus:ring-red-300/50 disabled:cursor-not-allowed disabled:opacity-40"
+                        disabled={isBusy}
+                        onClick={() => removeImage(image.id)}
+                        type="button"
+                      >
+                        Remove
+                      </button>
+                    }
+                    detail={`${image.width} x ${image.height} px`}
+                    key={image.id}
+                    name={image.file.name}
+                    sizeLabel={formatBytes(image.file.size)}
+                    thumbnailUrl={image.previewUrl}
+                    typeLabel={labelByMimeType[image.file.type as OutputMimeType]}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          <aside className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl shadow-black/20 sm:p-8">
+            <h2 className="text-lg font-semibold text-white">Conversion options</h2>
+            <div className="mt-6 grid gap-5">
+              <SelectField
+                label="Output format"
+                onChange={(value) => setOutputFormat(value as OutputMimeType)}
+                options={outputOptions}
+                value={outputFormat}
+              />
+
+              {showQualityControl ? (
+                <label className="block" htmlFor="conversion-quality">
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-sm font-semibold text-white">Quality</span>
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm font-semibold text-cyan-200">
+                      {quality}
+                    </span>
+                  </div>
+                  <input
+                    className="mt-4 w-full accent-cyan-300"
+                    id="conversion-quality"
+                    max="100"
+                    min="1"
+                    onChange={(event) => setQuality(Number(event.target.value))}
+                    type="range"
+                    value={quality}
+                  />
+                </label>
+              ) : null}
+
+              {transparencyWarning ? (
+                <p className="rounded-2xl border border-yellow-300/20 bg-yellow-300/10 p-4 text-sm leading-6 text-yellow-100">
+                  JPEG does not preserve transparency. Transparent pixels will become white.
+                </p>
+              ) : null}
+
+              {allImagesAlreadyMatch ? (
+                <p className="rounded-2xl border border-white/10 bg-[#080b1a]/70 p-4 text-sm leading-6 text-slate-300">
+                  Every selected image is already {labelByMimeType[outputFormat]}. Choose another output format to convert.
+                </p>
+              ) : null}
+            </div>
+
+            {images.length > 0 && !isBusy ? (
+              <div className="mt-5">
+                <EstimatePanel
+                  items={[
+                    { label: "Files", value: imageCountLabel.replace(" selected", "") },
+                    { label: "Total input size", value: formatBytes(totalSize) },
+                    { label: "Output format", value: labelByMimeType[outputFormat] },
+                  ]}
+                />
+              </div>
+            ) : null}
+
+            <button
+              className="mt-5 w-full rounded-full bg-gradient-to-r from-[#4F46E5] via-[#06B6D4] to-[#14B8A6] px-6 py-3 text-sm font-semibold text-white shadow-xl shadow-cyan-500/20 transition hover:-translate-y-0.5 hover:shadow-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+              disabled={convertDisabled}
+              onClick={convertImages}
+              type="button"
+            >
+              {phase === "processing" ? "Converting..." : "Convert Images"}
+            </button>
+
+            <div className="mt-5 space-y-3">
+              {phase === "preparing" ? (
+                <ProcessingState subtitle="Loading your images" title="Preparing" />
+              ) : null}
+              {phase === "processing" ? (
+                <>
+                  <ProcessingState subtitle="Converting locally in your browser" title="Processing" />
+                  <ProgressIndicator label="Conversion progress" value={progress} />
+                </>
+              ) : null}
+              {phase === "error" && errorMessage ? (
+                <ErrorCard message={errorMessage} title="Something went wrong" />
+              ) : null}
+            </div>
+          </aside>
         </div>
-      ) : null}
+      )}
     </section>
   );
 }
@@ -811,19 +736,5 @@ function SelectField({ label, value, options, onChange }: SelectFieldProps) {
         ))}
       </select>
     </label>
-  );
-}
-
-type ResultStatProps = {
-  label: string;
-  value: string;
-};
-
-function ResultStat({ label, value }: ResultStatProps) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
-      <dt className="text-xs text-slate-400">{label}</dt>
-      <dd className="mt-1 break-words text-sm font-semibold text-white">{value}</dd>
-    </div>
   );
 }

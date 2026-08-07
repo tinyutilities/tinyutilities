@@ -1,7 +1,27 @@
 "use client";
 
-import { PDFDocument } from "pdf-lib";
+import {
+  clip,
+  closePath,
+  endPath,
+  lineTo,
+  moveTo,
+  PDFDocument,
+  popGraphicsState,
+  pushGraphicsState,
+} from "pdf-lib";
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ErrorCard,
+  EstimatePanel,
+  formatBytes,
+  ProcessingState,
+  ProgressIndicator,
+  SelectedFileRow,
+  SuccessCard,
+  UploadCard,
+} from "@/components/upload";
+import type { UploadPhase } from "@/components/upload";
 
 type UploadedImage = {
   id: string;
@@ -11,13 +31,13 @@ type UploadedImage = {
   height: number;
 };
 
-type PageSize = "a4" | "letter";
-type Orientation = "portrait" | "landscape";
+type PageSize = "a4" | "letter" | "match";
+type Orientation = "portrait" | "landscape" | "auto";
 type MarginSize = "none" | "small" | "medium";
-type ConverterStatus = "empty" | "loading" | "success" | "error";
+type ImageFit = "fit" | "fill";
 
 const acceptedTypes = ["image/jpeg", "image/png", "image/webp"];
-const pageSizes: Record<PageSize, [number, number]> = {
+const fixedPageSizes: Record<Exclude<PageSize, "match">, [number, number]> = {
   a4: [595.28, 841.89],
   letter: [612, 792],
 };
@@ -26,19 +46,8 @@ const margins: Record<MarginSize, number> = {
   small: 24,
   medium: 48,
 };
-
-function formatBytes(bytes: number) {
-  const units = ["B", "KB", "MB", "GB"];
-  let size = bytes;
-  let unitIndex = 0;
-
-  while (size >= 1024 && unitIndex < units.length - 1) {
-    size /= 1024;
-    unitIndex += 1;
-  }
-
-  return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
-}
+/** Treat one CSS pixel as one PDF point when a page is sized to match its source image. */
+const PIXELS_TO_POINTS = 0.75;
 
 function createImageRecord(file: File): Promise<UploadedImage> {
   return new Promise((resolve, reject) => {
@@ -64,15 +73,33 @@ function createImageRecord(file: File): Promise<UploadedImage> {
   });
 }
 
-function getPageDimensions(size: PageSize, orientation: Orientation) {
-  const [width, height] = pageSizes[size];
-  return orientation === "landscape" ? [height, width] : [width, height];
+/** Resolves the page's [width, height] in points for one image, honoring "match" size and "auto" orientation. */
+function getPageDimensions(size: PageSize, orientation: Orientation, image: UploadedImage) {
+  if (size === "match") {
+    return [image.width * PIXELS_TO_POINTS, image.height * PIXELS_TO_POINTS];
+  }
+
+  const [width, height] = fixedPageSizes[size];
+  const isLandscape =
+    orientation === "landscape" || (orientation === "auto" && image.width > image.height);
+
+  return isLandscape ? [height, width] : [width, height];
 }
 
-function getFit(imageWidth: number, imageHeight: number, pageWidth: number, pageHeight: number, margin: number) {
+/** "fit" (contain, never crops) vs "fill" (cover, crops to fill the margin box) placement for an image. */
+function getPlacement(
+  imageWidth: number,
+  imageHeight: number,
+  pageWidth: number,
+  pageHeight: number,
+  margin: number,
+  fit: ImageFit,
+) {
   const availableWidth = pageWidth - margin * 2;
   const availableHeight = pageHeight - margin * 2;
-  const scale = Math.min(availableWidth / imageWidth, availableHeight / imageHeight, 1);
+  const containScale = Math.min(availableWidth / imageWidth, availableHeight / imageHeight, 1);
+  const coverScale = Math.max(availableWidth / imageWidth, availableHeight / imageHeight);
+  const scale = fit === "fill" ? coverScale : containScale;
   const width = imageWidth * scale;
   const height = imageHeight * scale;
 
@@ -81,6 +108,7 @@ function getFit(imageWidth: number, imageHeight: number, pageWidth: number, page
     height,
     x: (pageWidth - width) / 2,
     y: (pageHeight - height) / 2,
+    clipBox: fit === "fill" ? { x: margin, y: margin, width: availableWidth, height: availableHeight } : null,
   };
 }
 
@@ -107,18 +135,30 @@ async function convertWebpToPngBytes(file: File) {
   return blob.arrayBuffer();
 }
 
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.download = filename;
+  link.href = url;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export function ImageToPdfTool() {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const imagesRef = useRef<UploadedImage[]>([]);
-  const downloadUrlRef = useRef<string | null>(null);
+  const resultBlobRef = useRef<Blob | null>(null);
+  const downloadedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [pageSize, setPageSize] = useState<PageSize>("a4");
   const [orientation, setOrientation] = useState<Orientation>("portrait");
   const [margin, setMargin] = useState<MarginSize>("small");
-  const [status, setStatus] = useState<ConverterStatus>("empty");
-  const [message, setMessage] = useState("Add JPG, PNG, or WEBP images to create a PDF.");
-  const [progress, setProgress] = useState(0);
-  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [imageFit, setImageFit] = useState<ImageFit>("fit");
+  const [phase, setPhase] = useState<UploadPhase>("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number | undefined>(undefined);
+  const [resultBlob, setResultBlob] = useState<Blob | null>(null);
+  const [justDownloaded, setJustDownloaded] = useState(false);
 
   const imageCountLabel = images.length === 1 ? "1 image selected" : `${images.length} images selected`;
   const totalSize = useMemo(
@@ -131,53 +171,48 @@ export function ImageToPdfTool() {
   }, [images]);
 
   useEffect(() => {
-    downloadUrlRef.current = downloadUrl;
-  }, [downloadUrl]);
+    resultBlobRef.current = resultBlob;
+  }, [resultBlob]);
 
   useEffect(() => {
     return () => {
       imagesRef.current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
-      if (downloadUrlRef.current) {
-        URL.revokeObjectURL(downloadUrlRef.current);
-      }
+      if (downloadedTimeoutRef.current) clearTimeout(downloadedTimeoutRef.current);
     };
   }, []);
 
-  const resetDownload = () => {
-    if (downloadUrl) {
-      URL.revokeObjectURL(downloadUrl);
-      setDownloadUrl(null);
-    }
+  const resetResult = () => {
+    setResultBlob(null);
+    setProgress(undefined);
   };
 
   const addFiles = async (fileList: FileList | File[]) => {
     const files = Array.from(fileList);
     const validFiles = files.filter((file) => acceptedTypes.includes(file.type));
 
-    resetDownload();
+    resetResult();
+    setErrorMessage(null);
 
     if (validFiles.length === 0) {
-      setStatus("error");
-      setMessage("Please choose JPG, PNG, or WEBP images.");
+      setPhase("error");
+      setErrorMessage("Please choose JPG, PNG, or WEBP images.");
       return;
     }
 
-    setStatus("loading");
-    setMessage("Loading images...");
+    setPhase("preparing");
 
     try {
       const nextImages = await Promise.all(validFiles.map(createImageRecord));
       setImages((currentImages) => [...currentImages, ...nextImages]);
-      setStatus("success");
-      setMessage(`${nextImages.length} image${nextImages.length === 1 ? "" : "s"} added.`);
+      setPhase("idle");
     } catch (error) {
-      setStatus("error");
-      setMessage(error instanceof Error ? error.message : "Could not load one of the selected images.");
+      setPhase("error");
+      setErrorMessage(error instanceof Error ? error.message : "Could not load one of the selected images.");
     }
   };
 
   const removeImage = (id: string) => {
-    resetDownload();
+    resetResult();
     setImages((currentImages) => {
       const image = currentImages.find((item) => item.id === id);
       if (image) {
@@ -186,8 +221,7 @@ export function ImageToPdfTool() {
 
       const nextImages = currentImages.filter((item) => item.id !== id);
       if (nextImages.length === 0) {
-        setStatus("empty");
-        setMessage("Add JPG, PNG, or WEBP images to create a PDF.");
+        setPhase("idle");
       }
 
       return nextImages;
@@ -195,16 +229,16 @@ export function ImageToPdfTool() {
   };
 
   const clearImages = () => {
-    resetDownload();
+    resetResult();
     images.forEach((image) => URL.revokeObjectURL(image.previewUrl));
     setImages([]);
-    setProgress(0);
-    setStatus("empty");
-    setMessage("Add JPG, PNG, or WEBP images to create a PDF.");
+    setPhase("idle");
+    setErrorMessage(null);
+    setJustDownloaded(false);
   };
 
   const moveImage = (index: number, direction: -1 | 1) => {
-    resetDownload();
+    resetResult();
     setImages((currentImages) => {
       const nextIndex = index + direction;
       if (nextIndex < 0 || nextIndex >= currentImages.length) {
@@ -219,19 +253,17 @@ export function ImageToPdfTool() {
 
   const convertToPdf = async () => {
     if (images.length === 0) {
-      setStatus("error");
-      setMessage("Add at least one image before converting.");
+      setPhase("error");
+      setErrorMessage("Add at least one image before converting.");
       return;
     }
 
-    resetDownload();
-    setStatus("loading");
+    resetResult();
+    setPhase("processing");
     setProgress(0);
-    setMessage("Creating PDF locally...");
 
     try {
       const pdfDoc = await PDFDocument.create();
-      const [pageWidth, pageHeight] = getPageDimensions(pageSize, orientation);
       const pageMargin = margins[margin];
 
       for (const [index, image] of images.entries()) {
@@ -243,10 +275,31 @@ export function ImageToPdfTool() {
           image.file.type === "image/png" || image.file.type === "image/webp"
             ? await pdfDoc.embedPng(imageBytes)
             : await pdfDoc.embedJpg(imageBytes);
+        const [pageWidth, pageHeight] = getPageDimensions(pageSize, orientation, image);
         const page = pdfDoc.addPage([pageWidth, pageHeight]);
-        const fit = getFit(image.width, image.height, pageWidth, pageHeight, pageMargin);
+        const placement = getPlacement(image.width, image.height, pageWidth, pageHeight, pageMargin, imageFit);
 
-        page.drawImage(embeddedImage, fit);
+        if (placement.clipBox) {
+          const { x, y, width, height } = placement.clipBox;
+
+          page.pushOperators(
+            pushGraphicsState(),
+            moveTo(x, y),
+            lineTo(x + width, y),
+            lineTo(x + width, y + height),
+            lineTo(x, y + height),
+            closePath(),
+            clip(),
+            endPath(),
+          );
+        }
+
+        page.drawImage(embeddedImage, placement);
+
+        if (placement.clipBox) {
+          page.pushOperators(popGraphicsState());
+        }
+
         setProgress(Math.round(((index + 1) / images.length) * 100));
       }
 
@@ -256,20 +309,33 @@ export function ImageToPdfTool() {
         pdfBytes.byteOffset + pdfBytes.byteLength,
       ) as ArrayBuffer;
       const blob = new Blob([pdfArrayBuffer], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
 
-      setDownloadUrl(url);
-      setStatus("success");
-      setMessage(`PDF created successfully (${formatBytes(blob.size)}).`);
+      setResultBlob(blob);
+      setPhase("completed");
     } catch {
-      setStatus("error");
-      setProgress(0);
-      setMessage("Could not create the PDF. Try fewer images or smaller files.");
+      setPhase("error");
+      setProgress(undefined);
+      setErrorMessage("Could not create the PDF. Try fewer images or smaller files.");
     }
   };
 
-  const statusColor =
-    status === "error" ? "text-red-300" : status === "success" ? "text-teal-300" : "text-slate-400";
+  const markDownloaded = () => {
+    setJustDownloaded(true);
+    if (downloadedTimeoutRef.current) clearTimeout(downloadedTimeoutRef.current);
+    downloadedTimeoutRef.current = setTimeout(() => setJustDownloaded(false), 3000);
+  };
+
+  const downloadPdf = () => {
+    if (!resultBlob) return;
+    downloadBlob(resultBlob, "tinyutility-images.pdf");
+    markDownloaded();
+  };
+
+  const isBusy = phase === "preparing" || phase === "processing";
+  const showSuccessHero = phase === "completed" && resultBlob;
+  const pageSizeLabel = pageSize === "match" ? "Matches image" : pageSize.toUpperCase();
+  const orientationLabel =
+    orientation === "auto" ? "Auto" : orientation === "portrait" ? "Portrait" : "Landscape";
 
   return (
     <section className="mt-16 space-y-6">
@@ -277,189 +343,195 @@ export function ImageToPdfTool() {
         Files never leave your device. Everything happens locally inside your browser.
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl shadow-black/20 sm:p-8">
-          <div
-            className="rounded-2xl border border-dashed border-cyan-300/35 bg-[#080b1a]/70 p-8 text-center transition hover:border-cyan-200/60"
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => {
-              event.preventDefault();
-              void addFiles(event.dataTransfer.files);
-            }}
-          >
-            <p className="text-lg font-semibold text-white">Drop images here</p>
-            <p className="mt-2 text-sm leading-6 text-slate-400">
-              JPG, JPEG, PNG, and WEBP images are supported. Add as many as your browser can handle.
-            </p>
-            <button
-              className="mt-6 rounded-full bg-gradient-to-r from-[#4F46E5] via-[#06B6D4] to-[#14B8A6] px-6 py-3 text-sm font-semibold text-white shadow-xl shadow-cyan-500/20 transition hover:-translate-y-0.5 hover:shadow-cyan-500/30"
-              onClick={() => fileInputRef.current?.click()}
-              type="button"
-            >
-              Browse Images
-            </button>
-            <input
-              accept="image/jpeg,image/png,image/webp"
-              className="sr-only"
-              multiple
-              onChange={(event) => {
-                if (event.target.files) {
-                  void addFiles(event.target.files);
-                  event.target.value = "";
-                }
-              }}
-              ref={fileInputRef}
-              type="file"
-            />
+      {showSuccessHero ? (
+        <SuccessCard
+          downloadLabel="Download PDF"
+          justDownloaded={justDownloaded}
+          onDownload={downloadPdf}
+          heroStat={{ label: "File size", value: formatBytes(resultBlob.size) }}
+          onReset={clearImages}
+          stats={[
+            { label: "Pages", value: `${images.length}` },
+            { label: "Page size", value: pageSizeLabel },
+            { label: "Orientation", value: orientationLabel },
+          ]}
+          subtitle="Your PDF is ready to download."
+          title="File Ready"
+        />
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl shadow-black/20 sm:p-8">
+            {images.length === 0 ? (
+              <UploadCard
+                accept="image/jpeg,image/png,image/webp"
+                disabled={isBusy}
+                formatsLabel="JPG, PNG, and WEBP"
+                helperText="Add as many as your browser can handle."
+                multiple
+                onFiles={(files) => void addFiles(files)}
+              />
+            ) : (
+              <UploadCard
+                accept="image/jpeg,image/png,image/webp"
+                compact
+                disabled={isBusy}
+                formatsLabel="JPG, PNG, and WEBP"
+                multiple
+                onFiles={(files) => void addFiles(files)}
+              />
+            )}
+
+            <div className="mt-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <div>
+                <p className="text-sm font-semibold text-white">{imageCountLabel}</p>
+                {images.length > 0 ? (
+                  <p className="mt-1 text-sm text-slate-400">Total input size: {formatBytes(totalSize)}</p>
+                ) : null}
+              </div>
+              <button
+                className="rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={images.length === 0 || isBusy}
+                onClick={clearImages}
+                type="button"
+              >
+                Clear all
+              </button>
+            </div>
+
+            {images.length > 0 ? (
+              <div className="mt-6 grid gap-3">
+                {images.map((image, index) => (
+                  <SelectedFileRow
+                    actions={
+                      <>
+                        <button
+                          aria-label={`Move ${image.file.name} earlier in the PDF`}
+                          className="rounded-full border border-white/15 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:border-cyan-300/40 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-300/50 disabled:cursor-not-allowed disabled:opacity-40"
+                          disabled={index === 0 || isBusy}
+                          onClick={() => moveImage(index, -1)}
+                          type="button"
+                        >
+                          Up
+                        </button>
+                        <button
+                          aria-label={`Move ${image.file.name} later in the PDF`}
+                          className="rounded-full border border-white/15 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:border-cyan-300/40 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-300/50 disabled:cursor-not-allowed disabled:opacity-40"
+                          disabled={index === images.length - 1 || isBusy}
+                          onClick={() => moveImage(index, 1)}
+                          type="button"
+                        >
+                          Down
+                        </button>
+                        <button
+                          aria-label={`Remove ${image.file.name}`}
+                          className="rounded-full border border-red-300/25 px-3 py-2 text-xs font-semibold text-red-200 transition hover:border-red-200/50 hover:text-white focus:outline-none focus:ring-2 focus:ring-red-300/50 disabled:cursor-not-allowed disabled:opacity-40"
+                          disabled={isBusy}
+                          onClick={() => removeImage(image.id)}
+                          type="button"
+                        >
+                          Remove
+                        </button>
+                      </>
+                    }
+                    detail={`${image.width} x ${image.height} px`}
+                    key={image.id}
+                    name={image.file.name}
+                    sizeLabel={formatBytes(image.file.size)}
+                    thumbnailUrl={image.previewUrl}
+                    typeLabel={image.file.type.replace("image/", "").toUpperCase()}
+                  />
+                ))}
+              </div>
+            ) : null}
           </div>
 
-          <div className="mt-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-            <div>
-              <p className="text-sm font-semibold text-white">{imageCountLabel}</p>
-              {images.length > 0 ? (
-                <p className="mt-1 text-sm text-slate-400">Total input size: {formatBytes(totalSize)}</p>
+          <aside className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl shadow-black/20 sm:p-8">
+            <h2 className="text-lg font-semibold text-white">PDF options</h2>
+            <div className="mt-6 grid gap-5">
+              <SelectField
+                label="Page size"
+                onChange={(value) => setPageSize(value as PageSize)}
+                options={[
+                  ["a4", "A4"],
+                  ["letter", "Letter"],
+                  ["match", "Match Image Size"],
+                ]}
+                value={pageSize}
+              />
+              <SelectField
+                label="Orientation"
+                onChange={(value) => setOrientation(value as Orientation)}
+                options={[
+                  ["portrait", "Portrait"],
+                  ["landscape", "Landscape"],
+                  ["auto", "Auto (per image)"],
+                ]}
+                value={orientation}
+              />
+              <SelectField
+                label="Margins"
+                onChange={(value) => setMargin(value as MarginSize)}
+                options={[
+                  ["none", "None"],
+                  ["small", "Small"],
+                  ["medium", "Medium"],
+                ]}
+                value={margin}
+              />
+              <SelectField
+                label="Image fit"
+                onChange={(value) => setImageFit(value as ImageFit)}
+                options={[
+                  ["fit", "Fit (show the whole image)"],
+                  ["fill", "Fill (crop to fill the page)"],
+                ]}
+                value={imageFit}
+              />
+              <div className="rounded-2xl border border-white/10 bg-[#080b1a]/70 p-4 text-sm leading-6 text-slate-300">
+                {imageFit === "fit"
+                  ? "Aspect ratio is preserved automatically, and images are never upscaled."
+                  : "Images are scaled to fill the page and cropped evenly on the longer side."}
+              </div>
+            </div>
+
+            {images.length > 0 && !isBusy ? (
+              <div className="mt-5">
+                <EstimatePanel
+                  items={[
+                    { label: "Pages", value: `${images.length}` },
+                    { label: "Page size", value: pageSizeLabel },
+                    { label: "Orientation", value: orientationLabel },
+                  ]}
+                />
+              </div>
+            ) : null}
+
+            <button
+              className="mt-5 w-full rounded-full bg-gradient-to-r from-[#4F46E5] via-[#06B6D4] to-[#14B8A6] px-6 py-3 text-sm font-semibold text-white shadow-xl shadow-cyan-500/20 transition hover:-translate-y-0.5 hover:shadow-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+              disabled={images.length === 0 || isBusy}
+              onClick={convertToPdf}
+              type="button"
+            >
+              {phase === "processing" ? "Converting..." : "Convert to PDF"}
+            </button>
+
+            <div className="mt-5 space-y-3">
+              {phase === "preparing" ? (
+                <ProcessingState subtitle="Loading your images" title="Preparing" />
+              ) : null}
+              {phase === "processing" ? (
+                <>
+                  <ProcessingState subtitle="Building your PDF locally" title="Processing" />
+                  <ProgressIndicator label="PDF creation progress" value={progress} />
+                </>
+              ) : null}
+              {phase === "error" && errorMessage ? (
+                <ErrorCard message={errorMessage} title="Something went wrong" />
               ) : null}
             </div>
-            <button
-              className="rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={images.length === 0 || status === "loading"}
-              onClick={clearImages}
-              type="button"
-            >
-              Clear all
-            </button>
-          </div>
-
-          {images.length > 0 ? (
-            <div className="mt-6 grid gap-4">
-              {images.map((image, index) => (
-                <article
-                  className="grid gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:grid-cols-[96px_1fr_auto]"
-                  key={image.id}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element -- Local object URLs cannot be optimized by next/image. */}
-                  <img
-                    alt={`Preview of ${image.file.name}`}
-                    className="h-24 w-24 rounded-xl object-cover ring-1 ring-white/10"
-                    src={image.previewUrl}
-                  />
-                  <div className="min-w-0">
-                    <h3 className="truncate text-sm font-semibold text-white">{image.file.name}</h3>
-                    <p className="mt-2 text-sm text-slate-400">
-                      {image.width} x {image.height} px - {formatBytes(image.file.size)}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                    <button
-                      className="rounded-full border border-white/15 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:border-cyan-300/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-                      disabled={index === 0 || status === "loading"}
-                      onClick={() => moveImage(index, -1)}
-                      type="button"
-                    >
-                      Up
-                    </button>
-                    <button
-                      className="rounded-full border border-white/15 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:border-cyan-300/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-                      disabled={index === images.length - 1 || status === "loading"}
-                      onClick={() => moveImage(index, 1)}
-                      type="button"
-                    >
-                      Down
-                    </button>
-                    <button
-                      className="rounded-full border border-red-300/25 px-3 py-2 text-xs font-semibold text-red-200 transition hover:border-red-200/50 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-                      disabled={status === "loading"}
-                      onClick={() => removeImage(image.id)}
-                      type="button"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center text-sm text-slate-400">
-              No images selected yet.
-            </div>
-          )}
+          </aside>
         </div>
-
-        <aside className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl shadow-black/20 sm:p-8">
-          <h2 className="text-lg font-semibold text-white">PDF options</h2>
-          <div className="mt-6 grid gap-5">
-            <SelectField
-              label="Page size"
-              onChange={(value) => setPageSize(value as PageSize)}
-              options={[
-                ["a4", "A4"],
-                ["letter", "Letter"],
-              ]}
-              value={pageSize}
-            />
-            <SelectField
-              label="Orientation"
-              onChange={(value) => setOrientation(value as Orientation)}
-              options={[
-                ["portrait", "Portrait"],
-                ["landscape", "Landscape"],
-              ]}
-              value={orientation}
-            />
-            <SelectField
-              label="Margins"
-              onChange={(value) => setMargin(value as MarginSize)}
-              options={[
-                ["none", "None"],
-                ["small", "Small"],
-                ["medium", "Medium"],
-              ]}
-              value={margin}
-            />
-            <div className="rounded-2xl border border-white/10 bg-[#080b1a]/70 p-4 text-sm leading-6 text-slate-300">
-              Aspect ratio is preserved automatically, and images are never upscaled.
-            </div>
-          </div>
-
-          <button
-            className="mt-6 w-full rounded-full bg-gradient-to-r from-[#4F46E5] via-[#06B6D4] to-[#14B8A6] px-6 py-3 text-sm font-semibold text-white shadow-xl shadow-cyan-500/20 transition hover:-translate-y-0.5 hover:shadow-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
-            disabled={images.length === 0 || status === "loading"}
-            onClick={convertToPdf}
-            type="button"
-          >
-            {status === "loading" ? "Converting..." : "Convert to PDF"}
-          </button>
-
-          <div className="mt-5">
-            <div
-              aria-label={`PDF conversion progress: ${progress}%`}
-              aria-valuemax={100}
-              aria-valuemin={0}
-              aria-valuenow={progress}
-              className="h-2 overflow-hidden rounded-full bg-white/10"
-              role="progressbar"
-            >
-              <div
-                className="h-full rounded-full bg-teal-300 transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <p className={`mt-3 text-sm ${statusColor}`} role={status === "error" ? "alert" : "status"}>
-              {message}
-            </p>
-          </div>
-
-          {downloadUrl ? (
-            <a
-              className="mt-5 block rounded-full border border-cyan-300/25 bg-cyan-300/10 px-6 py-3 text-center text-sm font-semibold text-cyan-100 transition hover:-translate-y-0.5 hover:border-cyan-200/50 hover:bg-cyan-300/15"
-              download="tinyutility-images.pdf"
-              href={downloadUrl}
-            >
-              Download PDF
-            </a>
-          ) : null}
-        </aside>
-      </div>
+      )}
     </section>
   );
 }

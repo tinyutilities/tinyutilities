@@ -6,8 +6,9 @@ import { PopularTools } from "@/components/landing/popular-tools";
 import { createSeoMetadata } from "@/lib/seo";
 
 export const metadata = createSeoMetadata({
-  title: "TinyUtility",
-  description: "Fast, focused browser-based tools for images, PDFs, text, developers, and productivity.",
+  title: "TinyUtility | Free Online Tools",
+  description:
+    "Free, privacy-first online utilities for images, PDFs, text, developers, and everyday productivity.",
   path: "/",
 });
 

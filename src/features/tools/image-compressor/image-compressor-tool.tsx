@@ -1,6 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ErrorCard,
+  EstimatePanel,
+  formatBytes,
+  ProcessingState,
+  ProgressIndicator,
+  SelectedFileRow,
+  SuccessCard,
+  UploadCard,
+} from "@/components/upload";
+import type { UploadPhase } from "@/components/upload";
 
 type UploadedImage = {
   id: string;
@@ -32,18 +43,9 @@ type CompressionFailure = {
 
 type OutputFormat = "original" | "image/jpeg" | "image/png" | "image/webp";
 type OutputMimeType = Exclude<OutputFormat, "original">;
-type ToolStatus = "empty" | "loading" | "success" | "error";
 
 const acceptedTypes = ["image/jpeg", "image/png", "image/webp"];
 const maxFileSize = 100 * 1024 * 1024;
-const defaultMessage = "Add JPG, PNG, or WEBP images to compress them locally.";
-const compressionQuotes = [
-  "Tiny pixels, big savings.",
-  "Compressing... your storage will thank you.",
-  "Almost there...",
-  "Making your images lighter...",
-  "TinyUtility is working its magic...",
-];
 
 const outputOptions: Array<[OutputFormat, string]> = [
   ["original", "Keep Original"],
@@ -63,19 +65,6 @@ const labelByMimeType: Record<OutputMimeType, string> = {
   "image/png": "PNG",
   "image/webp": "WebP",
 };
-
-function formatBytes(bytes: number) {
-  const units = ["B", "KB", "MB", "GB"];
-  let size = bytes;
-  let unitIndex = 0;
-
-  while (size >= 1024 && unitIndex < units.length - 1) {
-    size /= 1024;
-    unitIndex += 1;
-  }
-
-  return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
-}
 
 function getOutputMimeType(file: File, outputFormat: OutputFormat): OutputMimeType {
   if (outputFormat !== "original") {
@@ -102,12 +91,6 @@ function getReduction(originalSize: number, compressedSize: number) {
   }
 
   return Math.max(Math.round((1 - compressedSize / originalSize) * 100), 0);
-}
-
-function getRandomQuote() {
-  const index = Math.floor(Math.random() * compressionQuotes.length);
-
-  return compressionQuotes[index];
 }
 
 function createImageRecord(file: File): Promise<UploadedImage> {
@@ -318,9 +301,9 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 export function ImageCompressorTool() {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const imagesRef = useRef<UploadedImage[]>([]);
   const resultsRef = useRef<CompressedImage[]>([]);
+  const downloadedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [results, setResults] = useState<CompressedImage[]>([]);
   const [failures, setFailures] = useState<CompressionFailure[]>([]);
@@ -328,10 +311,10 @@ export function ImageCompressorTool() {
   const [outputFormat, setOutputFormat] = useState<OutputFormat>("original");
   const [resizeEnabled, setResizeEnabled] = useState(false);
   const [resizeWidth, setResizeWidth] = useState(1200);
-  const [status, setStatus] = useState<ToolStatus>("empty");
-  const [message, setMessage] = useState(defaultMessage);
-  const [progress, setProgress] = useState(0);
-  const [quote, setQuote] = useState(compressionQuotes[0]);
+  const [phase, setPhase] = useState<UploadPhase>("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number | undefined>(undefined);
+  const [justDownloaded, setJustDownloaded] = useState(false);
 
   const totalSize = useMemo(
     () => images.reduce((total, image) => total + image.file.size, 0),
@@ -352,8 +335,18 @@ export function ImageCompressorTool() {
     return targetFormat === "image/jpeg" && (image.file.type === "image/png" || image.file.type === "image/webp");
   });
   const imageCountLabel = images.length === 1 ? "1 image selected" : `${images.length} images selected`;
-  const statusColor =
-    status === "error" ? "text-red-300" : status === "success" ? "text-teal-300" : "text-slate-400";
+
+  const aggregate = useMemo(() => {
+    const originalSize = results.reduce((total, result) => total + result.originalSize, 0);
+    const compressedSize = results.reduce((total, result) => total + result.compressedSize, 0);
+
+    return {
+      originalSize,
+      compressedSize,
+      saved: getSavings(originalSize, compressedSize),
+      reduction: getReduction(originalSize, compressedSize),
+    };
+  }, [results]);
 
   useEffect(() => {
     imagesRef.current = images;
@@ -367,6 +360,7 @@ export function ImageCompressorTool() {
     return () => {
       imagesRef.current.forEach((image) => URL.revokeObjectURL(image.previewUrl));
       resultsRef.current.forEach((result) => URL.revokeObjectURL(result.previewUrl));
+      if (downloadedTimeoutRef.current) clearTimeout(downloadedTimeoutRef.current);
     };
   }, []);
 
@@ -374,20 +368,20 @@ export function ImageCompressorTool() {
     results.forEach((result) => URL.revokeObjectURL(result.previewUrl));
     setResults([]);
     setFailures([]);
-    setProgress(0);
+    setProgress(undefined);
   };
 
   const addFiles = async (fileList: FileList | File[]) => {
     const files = Array.from(fileList);
-    const unsupportedFiles = files.filter((file) => !acceptedTypes.includes(file.type));
     const oversizedFiles = files.filter((file) => acceptedTypes.includes(file.type) && file.size > maxFileSize);
     const validFiles = files.filter((file) => acceptedTypes.includes(file.type) && file.size <= maxFileSize);
 
     clearResults();
+    setErrorMessage(null);
 
     if (validFiles.length === 0) {
-      setStatus("error");
-      setMessage(
+      setPhase("error");
+      setErrorMessage(
         oversizedFiles.length > 0
           ? "Each image must be 100 MB or smaller."
           : "Please choose JPG, PNG, or WEBP images.",
@@ -395,22 +389,16 @@ export function ImageCompressorTool() {
       return;
     }
 
-    setStatus("loading");
-    setMessage("Loading images...");
+    setPhase("preparing");
 
     try {
       const nextImages = await Promise.all(validFiles.map(createImageRecord));
 
       setImages((currentImages) => [...currentImages, ...nextImages]);
-      setStatus("success");
-      setMessage([
-        `${nextImages.length} image${nextImages.length === 1 ? "" : "s"} added.`,
-        unsupportedFiles.length > 0 ? "Unsupported files were skipped." : "",
-        oversizedFiles.length > 0 ? "Files over 100 MB were skipped." : "",
-      ].filter(Boolean).join(" "));
+      setPhase("idle");
     } catch (error) {
-      setStatus("error");
-      setMessage(error instanceof Error ? error.message : "Could not load one of the selected images.");
+      setPhase("error");
+      setErrorMessage(error instanceof Error ? error.message : "Could not load one of the selected images.");
     }
   };
 
@@ -426,8 +414,7 @@ export function ImageCompressorTool() {
       const nextImages = currentImages.filter((item) => item.id !== id);
 
       if (nextImages.length === 0) {
-        setStatus("empty");
-        setMessage(defaultMessage);
+        setPhase("idle");
       }
 
       return nextImages;
@@ -438,21 +425,21 @@ export function ImageCompressorTool() {
     clearResults();
     images.forEach((image) => URL.revokeObjectURL(image.previewUrl));
     setImages([]);
-    setStatus("empty");
-    setMessage(defaultMessage);
+    setPhase("idle");
+    setErrorMessage(null);
+    setJustDownloaded(false);
   };
 
   const compressImages = async () => {
     if (images.length === 0) {
-      setStatus("error");
-      setMessage("Add at least one image before compressing.");
+      setPhase("error");
+      setErrorMessage("Add at least one image before compressing.");
       return;
     }
 
     clearResults();
-    setStatus("loading");
-    setMessage("Compressing images locally...");
-    setQuote(getRandomQuote());
+    setPhase("processing");
+    setProgress(0);
 
     const nextResults: CompressedImage[] = [];
     const nextFailures: CompressionFailure[] = [];
@@ -489,40 +476,37 @@ export function ImageCompressorTool() {
     setResults(nextResults);
     setFailures(nextFailures);
 
-    if (nextResults.length > 0 && nextFailures.length > 0) {
-      setStatus("error");
-      setMessage(`${nextResults.length} image${nextResults.length === 1 ? "" : "s"} compressed. Some images failed.`);
-      return;
-    }
-
     if (nextResults.length > 0) {
-      setStatus("success");
-      setMessage(`${nextResults.length} image${nextResults.length === 1 ? "" : "s"} compressed successfully.`);
+      setPhase("completed");
       return;
     }
 
-    setStatus("error");
-    setMessage("No images could be compressed. Try smaller files or a different output format.");
+    setPhase("error");
+    setErrorMessage("No images could be compressed. Try smaller files or a different output format.");
+  };
+
+  const markDownloaded = () => {
+    setJustDownloaded(true);
+    if (downloadedTimeoutRef.current) clearTimeout(downloadedTimeoutRef.current);
+    downloadedTimeoutRef.current = setTimeout(() => setJustDownloaded(false), 3000);
   };
 
   const downloadAll = async () => {
-    if (results.length === 0) {
-      setStatus("error");
-      setMessage("Compress images before downloading a ZIP.");
-      return;
-    }
+    if (results.length === 0) return;
 
     try {
       const zipBlob = await createZipArchive(results);
 
       downloadBlob(zipBlob, "tinyutility-compressed-images.zip");
-      setStatus("success");
-      setMessage("ZIP downloaded successfully.");
+      markDownloaded();
     } catch {
-      setStatus("error");
-      setMessage("Could not create the ZIP archive. Try downloading images individually.");
+      setPhase("error");
+      setErrorMessage("Could not create the ZIP archive. Try downloading images individually.");
     }
   };
+
+  const isBusy = phase === "preparing" || phase === "processing";
+  const showSuccessHero = phase === "completed" && results.length > 0;
 
   return (
     <section className="mt-16 space-y-6">
@@ -530,290 +514,236 @@ export function ImageCompressorTool() {
         Images are compressed entirely in your browser. Nothing is uploaded.
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl shadow-black/20 sm:p-8">
-          <div
-            className="rounded-2xl border border-dashed border-cyan-300/35 bg-[#080b1a]/70 p-8 text-center transition hover:border-cyan-200/60"
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => {
-              event.preventDefault();
-              void addFiles(event.dataTransfer.files);
-            }}
-          >
-            <p className="text-lg font-semibold text-white">Drop images here</p>
-            <p className="mt-2 text-sm leading-6 text-slate-400">
-              JPG, JPEG, PNG, and WEBP images are supported. Maximum 100 MB per image.
-            </p>
-            <button
-              className="mt-6 rounded-full bg-gradient-to-r from-[#4F46E5] via-[#06B6D4] to-[#14B8A6] px-6 py-3 text-sm font-semibold text-white shadow-xl shadow-cyan-500/20 transition hover:-translate-y-0.5 hover:shadow-cyan-500/30 focus:outline-none focus:ring-2 focus:ring-cyan-300/50"
-              onClick={() => fileInputRef.current?.click()}
-              type="button"
-            >
-              Browse Images
-            </button>
-            <input
-              accept="image/jpeg,image/png,image/webp"
-              className="sr-only"
-              multiple
-              onChange={(event) => {
-                if (event.target.files) {
-                  void addFiles(event.target.files);
-                  event.target.value = "";
-                }
-              }}
-              ref={fileInputRef}
-              type="file"
-            />
-          </div>
-
-          <div className="mt-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-            <div>
-              <p className="text-sm font-semibold text-white">{imageCountLabel}</p>
-              {images.length > 0 ? (
-                <p className="mt-1 text-sm text-slate-400">Total input size: {formatBytes(totalSize)}</p>
-              ) : null}
-            </div>
-            <button
-              className="rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={images.length === 0 || status === "loading"}
-              onClick={clearImages}
-              type="button"
-            >
-              Clear all
-            </button>
-          </div>
-
-          {images.length > 0 ? (
-            <div className="mt-6 grid gap-4">
-              {images.map((image) => (
-                <article
-                  className="grid gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:grid-cols-[96px_1fr_auto]"
-                  key={image.id}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element -- Local object URLs cannot be optimized by next/image. */}
-                  <img
-                    alt={`Preview of ${image.file.name}`}
-                    className="h-24 w-24 rounded-xl object-cover ring-1 ring-white/10"
-                    src={image.previewUrl}
-                  />
-                  <div className="min-w-0">
-                    <h3 className="truncate text-sm font-semibold text-white">{image.file.name}</h3>
-                    <p className="mt-2 text-sm text-slate-400">
-                      {image.width} x {image.height} px - {formatBytes(image.file.size)}
-                    </p>
-                  </div>
-                  <div className="flex items-center sm:justify-end">
-                    <button
-                      className="rounded-full border border-red-300/25 px-3 py-2 text-xs font-semibold text-red-200 transition hover:border-red-200/50 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-                      disabled={status === "loading"}
-                      onClick={() => removeImage(image.id)}
-                      type="button"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center text-sm text-slate-400">
-              No images selected yet.
-            </div>
-          )}
-        </div>
-
-        <aside className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl shadow-black/20 sm:p-8">
-          <h2 className="text-lg font-semibold text-white">Compression options</h2>
-          <div className="mt-6 grid gap-5">
-            <label className="block" htmlFor="compression-quality">
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-sm font-semibold text-white">Compression quality</span>
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm font-semibold text-cyan-200">
-                  {quality}
-                </span>
-              </div>
-              <input
-                className="mt-4 w-full accent-cyan-300"
-                id="compression-quality"
-                max="100"
-                min="1"
-                onChange={(event) => setQuality(Number(event.target.value))}
-                type="range"
-                value={quality}
-              />
-            </label>
-
-            <SelectField
-              label="Output format"
-              onChange={(value) => setOutputFormat(value as OutputFormat)}
-              options={outputOptions}
-              value={outputFormat}
-            />
-
-            {transparencyWarning ? (
-              <p className="rounded-2xl border border-yellow-300/20 bg-yellow-300/10 p-4 text-sm leading-6 text-yellow-100">
-                JPEG does not preserve transparency. Transparent areas will be flattened onto a white background.
-              </p>
-            ) : null}
-
-            <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-white/10 bg-[#080b1a]/70 px-4 py-3 text-sm text-slate-200 transition hover:border-cyan-300/30">
-              <span className="font-semibold text-white">Resize images</span>
-              <input
-                checked={resizeEnabled}
-                className="size-4 accent-cyan-300"
-                onChange={() => setResizeEnabled((currentValue) => !currentValue)}
-                type="checkbox"
-              />
-            </label>
-
-            {resizeEnabled ? (
-              <div className="rounded-2xl border border-white/10 bg-[#080b1a]/70 p-4">
-                <label className="block" htmlFor="resize-width">
-                  <span className="text-sm font-semibold text-white">Width</span>
-                  <input
-                    className="mt-3 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/40 focus:bg-white/[0.07] focus:ring-2 focus:ring-cyan-300/20"
-                    id="resize-width"
-                    min="1"
-                    onChange={(event) => setResizeWidth(Number(event.target.value))}
-                    type="number"
-                    value={resizeWidth}
-                  />
-                </label>
-                <p className="mt-3 text-sm leading-6 text-slate-400">
-                  Height is calculated automatically for each image to preserve its aspect ratio
-                  {calculatedHeight ? ` (${resizeWidth} x ${calculatedHeight} px for the first image).` : "."}
-                </p>
-              </div>
-            ) : null}
-          </div>
-
-          <button
-            className="mt-6 w-full rounded-full bg-gradient-to-r from-[#4F46E5] via-[#06B6D4] to-[#14B8A6] px-6 py-3 text-sm font-semibold text-white shadow-xl shadow-cyan-500/20 transition hover:-translate-y-0.5 hover:shadow-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
-            disabled={images.length === 0 || status === "loading"}
-            onClick={compressImages}
-            type="button"
-          >
-            {status === "loading" ? "Compressing..." : "Compress Images"}
-          </button>
-
-          <div className="mt-5">
-            {status === "loading" ? (
-              <p className="mb-3 text-sm font-medium text-cyan-100">{quote}</p>
-            ) : null}
-            <div
-              aria-label={`Image compression progress: ${progress}%`}
-              aria-valuemax={100}
-              aria-valuemin={0}
-              aria-valuenow={progress}
-              className="h-2 overflow-hidden rounded-full bg-white/10"
-              role="progressbar"
-            >
-              <div
-                className="h-full rounded-full bg-teal-300 transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <p className={`mt-3 text-sm ${statusColor}`} role={status === "error" ? "alert" : "status"}>
-              {message}
-            </p>
-          </div>
-
-          {results.length > 0 ? (
-            <button
-              className="mt-5 w-full rounded-full border border-cyan-300/25 bg-cyan-300/10 px-6 py-3 text-center text-sm font-semibold text-cyan-100 transition hover:-translate-y-0.5 hover:border-cyan-200/50 hover:bg-cyan-300/15"
-              onClick={downloadAll}
-              type="button"
-            >
-              Download All (ZIP)
-            </button>
-          ) : null}
-        </aside>
-      </div>
-
-      {failures.length > 0 ? (
-        <div className="rounded-3xl border border-red-300/20 bg-red-300/10 p-5 sm:p-6">
-          <h2 className="text-lg font-semibold text-white">Could not compress</h2>
-          <div className="mt-4 grid gap-3">
-            {failures.map((failure) => (
-              <p className="rounded-2xl border border-red-300/15 bg-[#080b1a]/60 p-4 text-sm text-red-100" key={failure.id}>
-                <span className="font-semibold">{failure.filename}:</span> {failure.reason}
-              </p>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      {results.length > 0 ? (
-        <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl shadow-black/20 sm:p-8">
-          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
-            <div>
-              <h2 className="text-xl font-semibold text-white">Compressed images</h2>
-              <p className="mt-2 text-sm text-slate-400">
-                Download images individually or save every successful result as a ZIP.
-              </p>
-            </div>
-            <button
-              className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-5 py-2.5 text-sm font-semibold text-cyan-100 transition hover:border-cyan-200/50 hover:bg-cyan-300/15"
-              onClick={downloadAll}
-              type="button"
-            >
-              Download All (ZIP)
-            </button>
-          </div>
-
-          <div className="mt-6 grid gap-5 lg:grid-cols-2">
+      {showSuccessHero ? (
+        <SuccessCard
+          downloadLabel={results.length > 1 ? "Download All (ZIP)" : "Download"}
+          justDownloaded={justDownloaded}
+          onDownload={results.length > 1 ? downloadAll : () => {
+            downloadBlob(results[0].blob, results[0].downloadName);
+            markDownloaded();
+          }}
+          heroStat={{ label: "Saved", value: `${aggregate.reduction}%` }}
+          onReset={clearImages}
+          stats={[
+            { label: "Original", value: formatBytes(aggregate.originalSize) },
+            { label: "Compressed", value: formatBytes(aggregate.compressedSize) },
+            { label: "Images", value: `${results.length}` },
+          ]}
+          subtitle={`Compressed ${results.length} image${results.length === 1 ? "" : "s"} successfully.${
+            failures.length > 0 ? ` ${failures.length} could not be compressed.` : ""
+          }`}
+        >
+          <div className="grid gap-3 lg:grid-cols-2">
             {results.map((result) => {
-              const originalImage = images.find((image) => image.id === result.sourceId);
               const saved = getSavings(result.originalSize, result.compressedSize);
               const reduction = getReduction(result.originalSize, result.compressedSize);
 
               return (
-                <article className="rounded-2xl border border-white/10 bg-[#080b1a]/70 p-4" key={result.id}>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {originalImage ? (
-                      <figure>
-                        {/* eslint-disable-next-line @next/next/no-img-element -- Local object URLs cannot be optimized by next/image. */}
-                        <img
-                          alt={`Original preview of ${result.filename}`}
-                          className="h-40 w-full rounded-xl object-cover ring-1 ring-white/10"
-                          src={originalImage.previewUrl}
-                        />
-                        <figcaption className="mt-2 text-xs font-medium text-slate-400">Original</figcaption>
-                      </figure>
-                    ) : null}
-                    <figure>
-                      {/* eslint-disable-next-line @next/next/no-img-element -- Local object URLs cannot be optimized by next/image. */}
-                      <img
-                        alt={`Compressed preview of ${result.filename}`}
-                        className="h-40 w-full rounded-xl object-cover ring-1 ring-white/10"
-                        src={result.previewUrl}
-                      />
-                      <figcaption className="mt-2 text-xs font-medium text-slate-400">Compressed</figcaption>
-                    </figure>
-                  </div>
-
-                  <h3 className="mt-4 truncate text-sm font-semibold text-white">{result.filename}</h3>
-                  <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                    <ResultStat label="Original size" value={formatBytes(result.originalSize)} />
-                    <ResultStat label="Compressed size" value={formatBytes(result.compressedSize)} />
-                    <ResultStat label="Space saved" value={formatBytes(saved)} />
-                    <ResultStat label="Reduction" value={`${reduction}%`} />
-                    <ResultStat label="Resolution" value={`${result.width} x ${result.height}`} />
-                    <ResultStat label="Output format" value={labelByMimeType[result.format]} />
-                  </dl>
-                  <button
-                    className="mt-5 w-full rounded-full border border-cyan-300/25 bg-cyan-300/10 px-5 py-2.5 text-sm font-semibold text-cyan-100 transition hover:-translate-y-0.5 hover:border-cyan-200/50 hover:bg-cyan-300/15"
-                    onClick={() => downloadBlob(result.blob, result.downloadName)}
-                    type="button"
-                  >
-                    Download
-                  </button>
-                </article>
+                <SelectedFileRow
+                  actions={
+                    <button
+                      className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-4 py-2 text-xs font-semibold text-cyan-100 transition hover:border-cyan-200/50 hover:bg-cyan-300/15"
+                      onClick={() => {
+                        downloadBlob(result.blob, result.downloadName);
+                        markDownloaded();
+                      }}
+                      type="button"
+                    >
+                      Download
+                    </button>
+                  }
+                  detail={`${formatBytes(result.originalSize)} → ${formatBytes(result.compressedSize)} (-${reduction}%, saved ${formatBytes(saved)})`}
+                  key={result.id}
+                  name={result.filename}
+                  sizeLabel={formatBytes(result.compressedSize)}
+                  thumbnailUrl={result.previewUrl}
+                  typeLabel={labelByMimeType[result.format]}
+                />
               );
             })}
           </div>
+          {failures.length > 0 ? (
+            <div className="mt-4 grid gap-2">
+              {failures.map((failure) => (
+                <ErrorCard
+                  key={failure.id}
+                  message={failure.reason}
+                  title={`Could not compress ${failure.filename}`}
+                />
+              ))}
+            </div>
+          ) : null}
+        </SuccessCard>
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl shadow-black/20 sm:p-8">
+            {images.length === 0 ? (
+              <UploadCard
+                accept="image/jpeg,image/png,image/webp"
+                disabled={isBusy}
+                formatsLabel="JPG, PNG, and WEBP"
+                helperText="Maximum 100 MB per image."
+                multiple
+                onFiles={(files) => void addFiles(files)}
+              />
+            ) : (
+              <UploadCard
+                accept="image/jpeg,image/png,image/webp"
+                compact
+                disabled={isBusy}
+                formatsLabel="JPG, PNG, and WEBP"
+                multiple
+                onFiles={(files) => void addFiles(files)}
+              />
+            )}
+
+            <div className="mt-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <div>
+                <p className="text-sm font-semibold text-white">{imageCountLabel}</p>
+                {images.length > 0 ? (
+                  <p className="mt-1 text-sm text-slate-400">Total input size: {formatBytes(totalSize)}</p>
+                ) : null}
+              </div>
+              <button
+                className="rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-white/30 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={images.length === 0 || isBusy}
+                onClick={clearImages}
+                type="button"
+              >
+                Clear all
+              </button>
+            </div>
+
+            {images.length > 0 ? (
+              <div className="mt-6 grid gap-3">
+                {images.map((image) => (
+                  <SelectedFileRow
+                    actions={
+                      <button
+                        aria-label={`Remove ${image.file.name}`}
+                        className="rounded-full border border-red-300/25 px-3 py-2 text-xs font-semibold text-red-200 transition hover:border-red-200/50 hover:text-white focus:outline-none focus:ring-2 focus:ring-red-300/50 disabled:cursor-not-allowed disabled:opacity-40"
+                        disabled={isBusy}
+                        onClick={() => removeImage(image.id)}
+                        type="button"
+                      >
+                        Remove
+                      </button>
+                    }
+                    detail={`${image.width} x ${image.height} px`}
+                    key={image.id}
+                    name={image.file.name}
+                    sizeLabel={formatBytes(image.file.size)}
+                    thumbnailUrl={image.previewUrl}
+                    typeLabel={labelByMimeType[getOutputMimeType(image.file, "original")]}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          <aside className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl shadow-black/20 sm:p-8">
+            <h2 className="text-lg font-semibold text-white">Compression options</h2>
+            <div className="mt-6 grid gap-5">
+              <label className="block" htmlFor="compression-quality">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-sm font-semibold text-white">Compression quality</span>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm font-semibold text-cyan-200">
+                    {quality}
+                  </span>
+                </div>
+                <input
+                  className="mt-4 w-full accent-cyan-300"
+                  id="compression-quality"
+                  max="100"
+                  min="1"
+                  onChange={(event) => setQuality(Number(event.target.value))}
+                  type="range"
+                  value={quality}
+                />
+              </label>
+
+              <SelectField
+                label="Output format"
+                onChange={(value) => setOutputFormat(value as OutputFormat)}
+                options={outputOptions}
+                value={outputFormat}
+              />
+
+              {transparencyWarning ? (
+                <p className="rounded-2xl border border-yellow-300/20 bg-yellow-300/10 p-4 text-sm leading-6 text-yellow-100">
+                  JPEG does not preserve transparency. Transparent areas will be flattened onto a white background.
+                </p>
+              ) : null}
+
+              <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-white/10 bg-[#080b1a]/70 px-4 py-3 text-sm text-slate-200 transition hover:border-cyan-300/30">
+                <span className="font-semibold text-white">Resize images</span>
+                <input
+                  checked={resizeEnabled}
+                  className="size-4 accent-cyan-300"
+                  onChange={() => setResizeEnabled((currentValue) => !currentValue)}
+                  type="checkbox"
+                />
+              </label>
+
+              {resizeEnabled ? (
+                <div className="rounded-2xl border border-white/10 bg-[#080b1a]/70 p-4">
+                  <label className="block" htmlFor="resize-width">
+                    <span className="text-sm font-semibold text-white">Width</span>
+                    <input
+                      className="mt-3 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/40 focus:bg-white/[0.07] focus:ring-2 focus:ring-cyan-300/20"
+                      id="resize-width"
+                      min="1"
+                      onChange={(event) => setResizeWidth(Number(event.target.value))}
+                      type="number"
+                      value={resizeWidth}
+                    />
+                  </label>
+                  <p className="mt-3 text-sm leading-6 text-slate-400">
+                    Height is calculated automatically for each image to preserve its aspect ratio
+                    {calculatedHeight ? ` (${resizeWidth} x ${calculatedHeight} px for the first image).` : "."}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+
+            {images.length > 0 && !isBusy ? (
+              <div className="mt-5">
+                <EstimatePanel
+                  items={[
+                    { label: "Files", value: imageCountLabel.replace(" selected", "") },
+                    { label: "Total input size", value: formatBytes(totalSize) },
+                    { label: "Output format", value: outputFormat === "original" ? "Same as input" : labelByMimeType[outputFormat] },
+                  ]}
+                />
+              </div>
+            ) : null}
+
+            <button
+              className="mt-5 w-full rounded-full bg-gradient-to-r from-[#4F46E5] via-[#06B6D4] to-[#14B8A6] px-6 py-3 text-sm font-semibold text-white shadow-xl shadow-cyan-500/20 transition hover:-translate-y-0.5 hover:shadow-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+              disabled={images.length === 0 || isBusy}
+              onClick={compressImages}
+              type="button"
+            >
+              {phase === "processing" ? "Compressing..." : "Compress Images"}
+            </button>
+
+            <div className="mt-5 space-y-3">
+              {phase === "preparing" ? (
+                <ProcessingState subtitle="Loading your images" title="Preparing" />
+              ) : null}
+              {phase === "processing" ? (
+                <>
+                  <ProcessingState subtitle="Compressing locally in your browser" title="Processing" />
+                  <ProgressIndicator label="Compression progress" value={progress} />
+                </>
+              ) : null}
+              {phase === "error" && errorMessage ? (
+                <ErrorCard message={errorMessage} title="Something went wrong" />
+              ) : null}
+            </div>
+          </aside>
         </div>
-      ) : null}
+      )}
     </section>
   );
 }
@@ -841,19 +771,5 @@ function SelectField({ label, value, options, onChange }: SelectFieldProps) {
         ))}
       </select>
     </label>
-  );
-}
-
-type ResultStatProps = {
-  label: string;
-  value: string;
-};
-
-function ResultStat({ label, value }: ResultStatProps) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
-      <dt className="text-xs text-slate-400">{label}</dt>
-      <dd className="mt-1 break-words text-sm font-semibold text-white">{value}</dd>
-    </div>
   );
 }

@@ -11,11 +11,12 @@ import { ImageConverterTool } from "@/features/tools/image-converter/image-conve
 import { ImageToPdfTool } from "@/features/tools/image-to-pdf/image-to-pdf-tool";
 import { JsonFormatterTool } from "@/features/tools/json-formatter/json-formatter-tool";
 import { PasswordGeneratorTool } from "@/features/tools/password-generator/password-generator-tool";
+import { PdfCompressorTool } from "@/features/tools/pdf-compressor/pdf-compressor-tool";
 import { PdfMergerTool } from "@/features/tools/pdf-merger/pdf-merger-tool";
 import { QrCodeGeneratorTool } from "@/features/tools/qr-code-generator/qr-code-generator-tool";
 import { getRelatedTools, getToolBySlug, tools } from "@/features/tools/tool-data";
 import { WordCounterTool } from "@/features/tools/word-counter/word-counter-tool";
-import { createSeoMetadata } from "@/lib/seo";
+import { absoluteUrl, createSeoMetadata } from "@/lib/seo";
 
 type ToolPageProps = {
   params: Promise<{
@@ -135,6 +136,65 @@ const pdfMergerMetadata: Metadata = createSeoMetadata({
     "TinyUtility",
   ],
   path: "/tools/pdf-merger",
+});
+
+const pdfCompressorFaq: FAQItem[] = [
+  {
+    question: "Are my PDFs uploaded anywhere?",
+    answer: "No. Your PDF is loaded, compressed, and saved entirely in your browser. Nothing is uploaded.",
+  },
+  {
+    question: "How does the compression actually work?",
+    answer:
+      "TinyUtility recompresses embedded JPEG images at your chosen quality level, downsamples oversized images, strips unnecessary metadata, and rebuilds the file using optimized object streams.",
+  },
+  {
+    question: "Why didn't my PDF get much smaller?",
+    answer:
+      "PDFs made mostly of text and vector graphics, or that use image formats other than JPEG, have little left to compress. TinyUtility never fabricates savings — if a file is already efficient, it says so.",
+  },
+  {
+    question: "Can I compress a password-protected PDF?",
+    answer:
+      "Not yet. Password-protected PDFs are not supported — remove the password first, then add the file again.",
+  },
+  {
+    question: "Which compression level should I choose?",
+    answer:
+      "Medium is recommended for most files. Choose Light when image quality matters most, or Strong when file size matters most.",
+  },
+];
+
+const pdfCompressorSteps: HowItWorksStep[] = [
+  {
+    title: "Add a PDF",
+    description: "Drag and drop or browse for a PDF file up to 100 MB.",
+  },
+  {
+    title: "Pick a compression level",
+    description: "Choose Light, Medium, or Strong based on how much quality you're willing to trade for size.",
+  },
+  {
+    title: "Compress locally",
+    description: "Images are recompressed and the file is rebuilt in your browser, then ready to download.",
+  },
+];
+
+const pdfCompressorMetadata: Metadata = createSeoMetadata({
+  title: "Free PDF Compressor | TinyUtility",
+  description:
+    "Compress PDF files online for free. Shrink file size by recompressing embedded images and stripping unneeded data, entirely in your browser.",
+  keywords: [
+    "pdf compressor",
+    "compress pdf",
+    "reduce pdf size",
+    "shrink pdf",
+    "optimize pdf",
+    "free pdf compressor",
+    "private pdf compressor",
+    "TinyUtility",
+  ],
+  path: "/tools/pdf-compressor",
 });
 
 const imageCompressorFaq: FAQItem[] = [
@@ -418,6 +478,32 @@ const jsonFormatterMetadata: Metadata = createSeoMetadata({
   path: "/tools/json-formatter",
 });
 
+function buildPdfCompressorStructuredData() {
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebApplication",
+        name: "PDF Compressor",
+        url: absoluteUrl("/tools/pdf-compressor"),
+        applicationCategory: "UtilitiesApplication",
+        operatingSystem: "Any (runs in the browser)",
+        offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        description:
+          "Compress PDF files online for free. Shrink file size by recompressing embedded images and stripping unneeded data, entirely in your browser.",
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: pdfCompressorFaq.map((item) => ({
+          "@type": "Question",
+          name: item.question,
+          acceptedAnswer: { "@type": "Answer", text: item.answer },
+        })),
+      },
+    ],
+  };
+}
+
 export function generateStaticParams() {
   return tools.map((tool) => ({
     slug: tool.slug,
@@ -444,6 +530,10 @@ export async function generateMetadata({ params }: ToolPageProps) {
 
   if (slug === "pdf-merger") {
     return pdfMergerMetadata;
+  }
+
+  if (slug === "pdf-compressor") {
+    return pdfCompressorMetadata;
   }
 
   if (slug === "qr-code-generator") {
@@ -480,6 +570,8 @@ export default async function ToolPage({ params }: ToolPageProps) {
         ? imageToPdfFaq
         : slug === "pdf-merger"
           ? pdfMergerFaq
+          : slug === "pdf-compressor"
+            ? pdfCompressorFaq
           : slug === "image-compressor"
             ? imageCompressorFaq
             : slug === "image-converter"
@@ -494,6 +586,7 @@ export default async function ToolPage({ params }: ToolPageProps) {
   const isPasswordGenerator = slug === "password-generator";
   const isImageToPdf = slug === "image-to-pdf";
   const isPdfMerger = slug === "pdf-merger";
+  const isPdfCompressor = slug === "pdf-compressor";
   const isImageCompressor = slug === "image-compressor";
   const isImageConverter = slug === "image-converter";
   const isQrCodeGenerator = slug === "qr-code-generator";
@@ -508,6 +601,7 @@ export default async function ToolPage({ params }: ToolPageProps) {
             isPasswordGenerator ||
             isImageToPdf ||
             isPdfMerger ||
+            isPdfCompressor ||
             isImageCompressor ||
             isImageConverter ||
             isQrCodeGenerator ||
@@ -534,6 +628,12 @@ export default async function ToolPage({ params }: ToolPageProps) {
           <>
             <PdfMergerTool />
             <HowItWorks steps={pdfMergerSteps} title="Private PDF merging in your browser" />
+          </>
+        ) : null}
+        {isPdfCompressor ? (
+          <>
+            <PdfCompressorTool />
+            <HowItWorks steps={pdfCompressorSteps} title="Private PDF compression in your browser" />
           </>
         ) : null}
         {isImageCompressor ? (
@@ -569,6 +669,14 @@ export default async function ToolPage({ params }: ToolPageProps) {
         <FAQSection items={faqItems} />
         <RelatedTools tools={getRelatedTools(slug)} />
       </ToolContainer>
+      {isPdfCompressor ? (
+        <script
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(buildPdfCompressorStructuredData()),
+          }}
+          type="application/ld+json"
+        />
+      ) : null}
     </ToolLayout>
   );
 }

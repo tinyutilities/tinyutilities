@@ -31,9 +31,11 @@ export function ToolCard({
               border
               border-white/10
               bg-white/5
-              px-8
-              py-7
+              px-5
+              py-5
               transition-all
+              sm:px-8
+              sm:py-7
               duration-300
               hover:-translate-y-1
 hover:border-cyan-300/60
@@ -67,11 +69,11 @@ hover:shadow-cyan-500/20
           />
         </div>
 
-        <h3 className="mt-5 min-h-[3rem] text-lg font-semibold text-white">
+        <h3 className="mt-4 text-lg font-semibold text-white sm:mt-5 sm:min-h-[3rem]">
           {title}
         </h3>
 
-        <p className="mt-3 flex-1 min-h-[3.6rem] text-sm leading-6 text-slate-400">
+        <p className="mt-2 flex-1 text-sm leading-6 text-slate-400 sm:mt-3 sm:min-h-[3.6rem]">
           {description}
         </p>
       </article>
