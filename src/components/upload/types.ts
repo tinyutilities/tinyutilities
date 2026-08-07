@@ -13,4 +13,6 @@ export type StatValue = {
   value: string;
   /** Marks the "hero" number (e.g. percentage saved) for extra emphasis. */
   emphasize?: boolean;
+  /** Spans both columns in a 2-column grid — for a longer value (e.g. a caveat message) that shouldn't be truncated. */
+  span?: boolean;
 };

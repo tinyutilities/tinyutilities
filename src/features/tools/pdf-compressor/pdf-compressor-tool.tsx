@@ -14,15 +14,35 @@ import {
   SuccessCard,
   UploadCard,
 } from "@/components/upload";
-import type { UploadPhase } from "@/components/upload";
+import type { StatValue, UploadPhase } from "@/components/upload";
 
 type CompressionLevel = "light" | "medium" | "strong";
+
+/** Cheap, decode-free scan results gathered once during the "preparing" phase. */
+type PdfAnalysis = {
+  totalSize: number;
+  /** Number of embedded image streams that recompression can actually act on (DCTDecode/JPEG). */
+  compressibleImageCount: number;
+  /** Combined byte size of those streams — the only portion of the file an estimate can be based on. */
+  compressibleImageBytes: number;
+};
 
 type SelectedPdf = {
   id: string;
   file: File;
   pageCount: number;
+  analysis: PdfAnalysis;
 };
+
+type SizeEstimate =
+  | {
+      kind: "range";
+      lowBytes: number;
+      highBytes: number;
+      lowReductionPercent: number;
+      highReductionPercent: number;
+    }
+  | { kind: "low-confidence" };
 
 type CompressionResult = {
   blob: Blob;
@@ -66,6 +86,95 @@ const maxDimensionByLevel: Record<CompressionLevel, number> = {
   strong: 1400,
 };
 
+// Conservative, empirically-grounded re-encode savings *range* per level, applied only to the
+// portion of the file made up of recompressible JPEG streams (the only thing an estimate can be
+// based on without actually re-encoding). A range, not a single number, because how much an
+// already-compressed JPEG shrinks further depends on its original quality — which can't be known
+// without decoding it. A lightly-compressed source photo has a lot of room; a heavily-compressed
+// one has almost none.
+const imageSavingsRangeByLevel: Record<CompressionLevel, [low: number, high: number]> = {
+  light: [0.05, 0.2],
+  medium: [0.2, 0.45],
+  strong: [0.35, 0.65],
+};
+
+// Below this share of the file being recompressible image data, an estimate isn't reliable enough
+// to state as a number — the file is mostly text/vector content or non-JPEG images, neither of
+// which this tool can honestly predict savings for.
+const MIN_IMAGE_SHARE_FOR_ESTIMATE = 0.12;
+
+/** Formats a byte range with one shared unit, e.g. "320–370 KB". */
+function formatByteRange(lowBytes: number, highBytes: number) {
+  const units = ["B", "KB", "MB", "GB"];
+  let unitIndex = 0;
+  let reference = highBytes;
+
+  while (reference >= 1024 && unitIndex < units.length - 1) {
+    reference /= 1024;
+    unitIndex += 1;
+  }
+
+  const divisor = 1024 ** unitIndex;
+  const decimals = unitIndex === 0 ? 0 : 1;
+  const low = (lowBytes / divisor).toFixed(decimals);
+  const high = (highBytes / divisor).toFixed(decimals);
+
+  return `${low}–${high} ${units[unitIndex]}`;
+}
+
+/**
+ * Estimates a compressed-size range from the analysis gathered during "preparing" — never from
+ * guesswork. Returns `low-confidence` (no numbers) when recompressible image data makes up too
+ * little of the file for a range to mean anything, e.g. text/vector-heavy or non-JPEG-image PDFs.
+ */
+function estimateCompressedSize(analysis: PdfAnalysis, level: CompressionLevel): SizeEstimate {
+  const { totalSize, compressibleImageBytes } = analysis;
+
+  if (totalSize === 0 || compressibleImageBytes / totalSize < MIN_IMAGE_SHARE_FOR_ESTIMATE) {
+    return { kind: "low-confidence" };
+  }
+
+  const [lowSavings, highSavings] = imageSavingsRangeByLevel[level];
+  const otherBytes = totalSize - compressibleImageBytes;
+  // Less savings applied -> larger result; more savings applied -> smaller result.
+  const highBytes = Math.round(otherBytes + compressibleImageBytes * (1 - lowSavings));
+  const lowBytes = Math.round(otherBytes + compressibleImageBytes * (1 - highSavings));
+
+  return {
+    kind: "range",
+    lowBytes,
+    highBytes,
+    lowReductionPercent: Math.round((1 - highBytes / totalSize) * 100),
+    highReductionPercent: Math.round((1 - lowBytes / totalSize) * 100),
+  };
+}
+
+/** Renders a `SizeEstimate` as EstimatePanel rows — a range when confident, a plain caveat otherwise. */
+function estimateToStatValues(estimate: SizeEstimate | null): StatValue[] {
+  if (!estimate) return [];
+
+  if (estimate.kind === "low-confidence") {
+    return [
+      {
+        label: "Estimated Output",
+        value: "Little or no reduction expected.",
+        span: true,
+      },
+    ];
+  }
+
+  return [
+    {
+      label: "Estimated Output",
+      value: `≈ ${formatByteRange(estimate.lowBytes, estimate.highBytes)}`,
+    },
+    {
+      label: "Expected Reduction",
+      value: `≈ ${estimate.lowReductionPercent}–${estimate.highReductionPercent}%`,
+    },
+  ];
+}
+
 function isPdfFile(file: File) {
   return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 }
@@ -96,10 +205,46 @@ function loadPdfLib() {
   return import("pdf-lib");
 }
 
-async function readPageCount(file: File, pdfLib: Awaited<ReturnType<typeof loadPdfLib>>) {
+/** True for image XObjects this tool can honestly recompress: DCTDecode (JPEG) streams, whose
+ *  raw bytes already are a JPEG that a canvas can decode and re-encode directly. */
+function isCompressibleImageStream(
+  pdfLib: Awaited<ReturnType<typeof loadPdfLib>>,
+  obj: unknown,
+): obj is ReturnType<typeof pdfLib.PDFRawStream.of> {
+  const { PDFName, PDFRawStream } = pdfLib;
+
+  if (!(obj instanceof PDFRawStream)) return false;
+
+  const subtype = obj.dict.get(PDFName.of("Subtype"));
+  const filter = obj.dict.get(PDFName.of("Filter"));
+
+  return subtype?.toString() === "/Image" && filter?.toString() === "/DCTDecode";
+}
+
+/** Reads page count and scans (without decoding) how much of the file is recompressible image
+ *  data — cheap enough to run during the "preparing" phase and reused for the size estimate. */
+async function analyzePdfFile(
+  file: File,
+  pdfLib: Awaited<ReturnType<typeof loadPdfLib>>,
+): Promise<{ pageCount: number; analysis: PdfAnalysis }> {
   const bytes = await file.arrayBuffer();
   const pdfDoc = await pdfLib.PDFDocument.load(bytes);
-  return pdfDoc.getPageCount();
+  const pageCount = pdfDoc.getPageCount();
+
+  let compressibleImageCount = 0;
+  let compressibleImageBytes = 0;
+
+  for (const [, obj] of pdfDoc.context.enumerateIndirectObjects()) {
+    if (!isCompressibleImageStream(pdfLib, obj)) continue;
+
+    compressibleImageCount += 1;
+    compressibleImageBytes += obj.getContentsSize();
+  }
+
+  return {
+    pageCount,
+    analysis: { totalSize: file.size, compressibleImageCount, compressibleImageBytes },
+  };
 }
 
 function getPdfErrorMessage(error: unknown, pdfLib: Awaited<ReturnType<typeof loadPdfLib>>) {
@@ -133,19 +278,12 @@ async function compressPdf(
   const maxDimension = maxDimensionByLevel[level];
   const context = pdfDoc.context;
 
-  // Only DCTDecode (JPEG) image streams can be honestly recompressed client-side: their raw
-  // stream bytes already are a JPEG, so they can be decoded and re-encoded directly. PDFs built
-  // mostly from vector graphics, text, or non-JPEG images will see little change here — that's
-  // expected, not a bug, and is reflected honestly in the result.
+  // PDFs built mostly from vector graphics, text, or non-JPEG images will see little change here
+  // — that's expected, not a bug, and is reflected honestly in both the estimate and the result.
   const imageEntries: Array<[PDFRef, ReturnType<typeof PDFRawStream.of>]> = [];
 
   for (const [ref, obj] of context.enumerateIndirectObjects()) {
-    if (!(obj instanceof PDFRawStream)) continue;
-
-    const subtype = obj.dict.get(PDFName.of("Subtype"));
-    const filter = obj.dict.get(PDFName.of("Filter"));
-
-    if (subtype?.toString() === "/Image" && filter?.toString() === "/DCTDecode") {
+    if (isCompressibleImageStream(pdfLib, obj)) {
       imageEntries.push([ref as PDFRef, obj]);
     }
   }
@@ -241,6 +379,11 @@ export function PdfCompressorTool() {
     [result],
   );
 
+  const estimate = useMemo(
+    () => (pdf ? estimateCompressedSize(pdf.analysis, level) : null),
+    [pdf, level],
+  );
+
   const addFile = async (fileList: FileList | File[]) => {
     const file = Array.from(fileList)[0];
 
@@ -267,7 +410,7 @@ export function PdfCompressorTool() {
     const pdfLib = await loadPdfLib();
 
     try {
-      const pageCount = await readPageCount(file, pdfLib);
+      const { pageCount, analysis } = await analyzePdfFile(file, pdfLib);
 
       if (pageCount === 0) {
         setPhase("error");
@@ -275,7 +418,7 @@ export function PdfCompressorTool() {
         return;
       }
 
-      setPdf({ id: `${file.name}-${file.lastModified}-${crypto.randomUUID()}`, file, pageCount });
+      setPdf({ id: `${file.name}-${file.lastModified}-${crypto.randomUUID()}`, file, pageCount, analysis });
       setPhase("idle");
     } catch (error) {
       setPhase("error");
@@ -445,10 +588,12 @@ export function PdfCompressorTool() {
             {pdf && !isBusy ? (
               <div className="mt-5">
                 <EstimatePanel
+                  caption="Estimate based on document content. Actual results may vary."
                   items={[
                     { label: "Pages", value: `${pdf.pageCount}` },
                     { label: "Input size", value: formatBytes(pdf.file.size) },
                     { label: "Level", value: levelOptions.find((option) => option.value === level)?.label ?? level },
+                    ...(estimateToStatValues(estimate)),
                   ]}
                 />
               </div>

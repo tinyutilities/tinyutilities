@@ -1,0 +1,28 @@
+# Cloudflare Pages header rules for the static export in `out/`.
+#
+# Root cause of the /tools ChunkLoadError: this repo had no `_headers` file, so
+# Cloudflare Pages served every response (HTML *and* the content-hashed JS under
+# /_next/static/) with its own default/heuristic caching instead of an explicit
+# policy. That let an HTML page (or its RSC payload, e.g. tools.txt) be served
+# stale from cache — still pointing at a chunk filename hash from a previous
+# build — after that specific chunk file had already been superseded by a newer
+# hash in a later deployment. The HTML said `page-49ee441999736ae7.js`; the live
+# chunks directory only had that build's actual output, so the request 404'd and
+# React's dynamic `import()` for the /tools route surfaced it as ChunkLoadError.
+#
+# Every file under /_next/static/ is content-hashed by webpack — a given hash
+# never changes meaning, so it is always safe to cache immutably forever. HTML
+# (and the paired .txt RSC payloads) must never be cached beyond revalidation,
+# since they are the only thing that references those hashes by name.
+
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/*.txt
+  Cache-Control: public, max-age=0, must-revalidate
+
+/*
+  Cache-Control: public, max-age=0, must-revalidate
