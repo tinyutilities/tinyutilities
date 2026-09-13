@@ -1,5 +1,4 @@
 import {
-  AiIcon,
   CodeIcon,
   ConvertIcon,
   ImageIcon,
@@ -10,42 +9,34 @@ import {
   TextIcon,
 } from "./icons";
 
+// Hrefs point at the matching category section on /tools (see the `id`s set in
+// ToolsDirectory) so clicking a card lands directly on that section instead of the top
+// of the page. Keep these in sync with `toolCategories` in features/tools/tool-data.ts —
+// each id is `${category.slug}-tools`.
 export const features = [
   {
     title: "Image Tools",
     description: "Compress, convert, resize, and optimize images for web and print.",
     Icon: ImageIcon,
-    href: "/tools",
+    href: "/tools#image-tools",
   },
   {
     title: "PDF Tools",
     description: "Merge, split, compress, and prepare documents with less friction.",
     Icon: PdfIcon,
-    href: "/tools",  
+    href: "/tools#pdf-tools",
   },
   {
     title: "Text Tools",
     description: "Format, clean, count, and transform text for everyday work.",
     Icon: TextIcon,
-    href: "/tools",
+    href: "/tools#text-tools",
   },
   {
     title: "Developer Tools",
     description: "Format code, inspect data, and speed through common dev tasks.",
     Icon: CodeIcon,
-    href: "/tools",
-  },
-  {
-    title: "AI Tools",
-    description: "Practical AI utilities built for quick, focused productivity.",
-    Icon: AiIcon,
-    href: "/tools",
-  },
-  {
-    title: "File Conversion",
-    description: "Convert common file types with a simple, polished workflow.",
-    Icon: ConvertIcon,
-    href: "/tools",
+    href: "/tools#developer-tools",
   },
 ];
 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Footer } from "@/components/landing/footer";
 import { Navbar } from "@/components/landing/navbar";
 import { SectionHeading } from "@/components/landing/section-heading";
@@ -225,6 +226,12 @@ export default function AboutPage() {
                 Bug reports, improvement ideas, and honest feedback are welcome as
                 TinyUtility continues to evolve.
               </p>
+              <Link
+                className="mt-5 inline-flex rounded-full bg-gradient-to-r from-[#4F46E5] via-[#06B6D4] to-[#14B8A6] px-6 py-3 text-sm font-semibold text-white shadow-xl shadow-cyan-500/20 transition hover:-translate-y-0.5 hover:shadow-cyan-500/30 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 focus:ring-offset-[#060816]"
+                href="/contact"
+              >
+                Contact us
+              </Link>
             </article>
           </div>
         </section>

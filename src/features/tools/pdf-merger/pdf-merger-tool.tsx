@@ -1,8 +1,13 @@
 "use client";
 
-import { degrees, PDFDocument } from "pdf-lib";
 import type { DragEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
+
+/** pdf-lib is only needed once the user actually adds or merges a PDF, so it's dynamically
+ *  imported here rather than bundled with every tool page's initial JS. */
+function loadPdfLib() {
+  return import("pdf-lib");
+}
 
 type PdfRecord = {
   id: string;
@@ -72,9 +77,12 @@ function yieldToBrowser() {
   });
 }
 
-async function createPdfRecord(file: File): Promise<PdfRecord> {
+async function createPdfRecord(
+  file: File,
+  pdfLib: Awaited<ReturnType<typeof loadPdfLib>>,
+): Promise<PdfRecord> {
   const bytes = await file.arrayBuffer();
-  const pdfDoc = await PDFDocument.load(bytes);
+  const pdfDoc = await pdfLib.PDFDocument.load(bytes);
   const pageCount = pdfDoc.getPageCount();
 
   if (pageCount === 0) {
@@ -176,12 +184,13 @@ export function PdfMergerTool() {
     setStatus("loading");
     setMessage("Reading PDFs locally...");
 
+    const pdfLib = await loadPdfLib();
     const nextPdfs: PdfRecord[] = [];
     const errors: string[] = [];
 
     for (const file of validFiles) {
       try {
-        const record = await createPdfRecord(file);
+        const record = await createPdfRecord(file, pdfLib);
         nextPdfs.push(record);
       } catch (error) {
         errors.push(getPdfErrorMessage(file.name, error));
@@ -304,14 +313,15 @@ export function PdfMergerTool() {
 
     try {
       await yieldToBrowser();
-      const mergedPdf = await PDFDocument.create();
+      const pdfLib = await loadPdfLib();
+      const mergedPdf = await pdfLib.PDFDocument.create();
       let completedPages = 0;
 
       setMessage("Merging documents...");
 
       for (const pdf of pdfs) {
         const sourceBytes = await pdf.file.arrayBuffer();
-        const sourcePdf = await PDFDocument.load(sourceBytes);
+        const sourcePdf = await pdfLib.PDFDocument.load(sourceBytes);
         const pageIndices = sourcePdf.getPageIndices();
         const copiedPages = await mergedPdf.copyPages(sourcePdf, pageIndices);
 
@@ -321,7 +331,7 @@ export function PdfMergerTool() {
 
         copiedPages.forEach((page) => {
           const currentRotation = page.getRotation().angle;
-          page.setRotation(degrees((currentRotation + pdf.rotation) % 360));
+          page.setRotation(pdfLib.degrees((currentRotation + pdf.rotation) % 360));
           mergedPdf.addPage(page);
         });
 

@@ -149,30 +149,43 @@ function estimateCompressedSize(analysis: PdfAnalysis, level: CompressionLevel):
   };
 }
 
-/** Renders a `SizeEstimate` as EstimatePanel rows — a range when confident, a plain caveat otherwise. */
+/** Renders a `SizeEstimate` as EstimatePanel rows — a range when confident, a plain caveat otherwise.
+ *  "Estimated output" is always marked `emphasize` so EstimatePanel renders it as the hero figure,
+ *  per the rule that the predicted output size is the number that matters most here. */
 function estimateToStatValues(estimate: SizeEstimate | null): StatValue[] {
   if (!estimate) return [];
 
   if (estimate.kind === "low-confidence") {
     return [
       {
-        label: "Estimated Output",
-        value: "Little or no reduction expected.",
-        span: true,
+        label: "Estimated output",
+        value: "Little or no reduction expected",
+        emphasize: true,
       },
     ];
   }
 
   return [
     {
-      label: "Estimated Output",
+      label: "Estimated output",
       value: `≈ ${formatByteRange(estimate.lowBytes, estimate.highBytes)}`,
+      emphasize: true,
     },
     {
-      label: "Expected Reduction",
+      label: "Estimated savings",
       value: `≈ ${estimate.lowReductionPercent}–${estimate.highReductionPercent}%`,
     },
   ];
+}
+
+/** Explains *why* a low-confidence estimate has no numbers, grounded in the same analysis used to
+ *  decide confidence in `estimateCompressedSize` — never a generic disclaimer. */
+function explainLowConfidenceEstimate(analysis: PdfAnalysis): string {
+  if (analysis.compressibleImageBytes === 0) {
+    return "This PDF contains little compressible image data — most of its size comes from text, vector graphics, or fonts.";
+  }
+
+  return "This PDF's embedded images make up only a small part of its file size, so compression is unlikely to reduce it much.";
 }
 
 function isPdfFile(file: File) {
@@ -384,6 +397,14 @@ export function PdfCompressorTool() {
     [pdf, level],
   );
 
+  // "Estimate based on document content..." is the default caption; a low-confidence estimate
+  // swaps in a specific reason instead, grounded in the same analysis, per the rule that the tool
+  // must explain why it isn't giving a number rather than just staying silent.
+  const estimateCaption = useMemo(() => {
+    if (pdf && estimate?.kind === "low-confidence") return explainLowConfidenceEstimate(pdf.analysis);
+    return "Estimate based on document content. Actual results may vary.";
+  }, [estimate, pdf]);
+
   const addFile = async (fileList: FileList | File[]) => {
     const file = Array.from(fileList)[0];
 
@@ -587,15 +608,30 @@ export function PdfCompressorTool() {
 
             {pdf && !isBusy ? (
               <div className="mt-5">
-                <EstimatePanel
-                  caption="Estimate based on document content. Actual results may vary."
-                  items={[
-                    { label: "Pages", value: `${pdf.pageCount}` },
-                    { label: "Input size", value: formatBytes(pdf.file.size) },
-                    { label: "Level", value: levelOptions.find((option) => option.value === level)?.label ?? level },
-                    ...(estimateToStatValues(estimate)),
-                  ]}
-                />
+                {(() => {
+                  const estimateStats = estimateToStatValues(estimate);
+                  // The hero (Estimated output) renders above the grid regardless of array
+                  // position, but keeping supporting facts — input size, pages, level — ahead of
+                  // the savings percentage in the grid itself matches the requested hierarchy.
+                  const heroStat = estimateStats.find((item) => item.emphasize);
+                  const savingsStat = estimateStats.filter((item) => !item.emphasize);
+
+                  return (
+                    <EstimatePanel
+                      caption={estimateCaption}
+                      items={[
+                        ...(heroStat ? [heroStat] : []),
+                        { label: "Input size", value: formatBytes(pdf.file.size) },
+                        { label: "Pages", value: `${pdf.pageCount}` },
+                        {
+                          label: "Compression level",
+                          value: levelOptions.find((option) => option.value === level)?.label ?? level,
+                        },
+                        ...savingsStat,
+                      ]}
+                    />
+                  );
+                })()}
               </div>
             ) : null}
 

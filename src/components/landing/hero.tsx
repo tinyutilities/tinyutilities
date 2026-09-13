@@ -8,15 +8,18 @@ export function Hero() {
         <div className="animate-fade-up flex justify-center">
           <Logo />
         </div>
-        <h1 className="animate-fade-up mt-5 text-4xl font-semibold tracking-tight text-white [animation-delay:100ms] sm:mt-10 sm:text-5xl lg:text-7xl">
+        {/* Visually this is still the dominant brand wordmark, but the page's one true <h1> —
+            the element search engines and assistive tech treat as "what this page is about" —
+            is the accurate product description just below, not the brand name. */}
+        <p className="animate-fade-up mt-5 text-4xl font-semibold tracking-tight text-white [animation-delay:100ms] sm:mt-10 sm:text-5xl lg:text-7xl">
           TinyUtility
-        </h1>
+        </p>
         <p className="animate-fade-up mt-3 text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-cyan-200 to-teal-200 [animation-delay:180ms] sm:mt-6 sm:text-2xl">
           Simple tools. Powerful results.
         </p>
-        <p className="animate-fade-up mx-auto mt-3 max-w-2xl text-base leading-7 text-slate-300 [animation-delay:260ms] sm:mt-6 sm:text-lg sm:leading-8">
+        <h1 className="animate-fade-up mx-auto mt-3 max-w-2xl text-base leading-7 text-slate-300 [animation-delay:260ms] sm:mt-6 sm:text-lg sm:leading-8">
           Free online utilities for images, PDFs, text, developers and everyday productivity.
-        </p>
+        </h1>
         <div className="animate-fade-up mt-6 flex flex-col items-center justify-center gap-3 sm:mt-10 sm:flex-row sm:gap-4 [animation-delay:340ms]">
           <a
             className="rounded-full bg-gradient-to-r from-[#4F46E5] via-[#06B6D4] to-[#14B8A6] px-7 py-3 text-sm font-semibold text-white shadow-xl shadow-cyan-500/20 transition hover:-translate-y-0.5 hover:shadow-cyan-500/30 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 focus:ring-offset-[#060816]"

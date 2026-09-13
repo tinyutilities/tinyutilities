@@ -161,9 +161,14 @@ export function ToolsDirectory({ categories, tools }: ToolsDirectoryProps) {
         ) : groupedTools ? (
           <div className="mt-4 space-y-7">
             {groupedTools.map(({ category, tools: groupTools }) => (
-              <div key={category.slug}>
+              // `id` lets category cards elsewhere (e.g. the home page) link straight to this
+              // section via `/tools#${category.slug}-tools`. `scroll-mt` keeps the heading clear
+              // of the sticky navbar (measured ~65px on mobile, ~73px on desktop) when the
+              // browser jumps to the anchor, plus a little breathing room.
+              <div className="scroll-mt-20 sm:scroll-mt-24" id={`${category.slug}-tools`} key={category.slug}>
                 <h3 className="text-sm font-semibold text-slate-200">{category.title}</h3>
-                <div className="mt-2.5 grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">{category.description}</p>
+                <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
                   {groupTools.map((tool) => (
                     <ToolCard key={tool.slug} tool={tool} />
                   ))}

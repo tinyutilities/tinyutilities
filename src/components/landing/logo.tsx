@@ -1,11 +1,22 @@
+import Image from "next/image";
 import Link from "next/link";
 
+// Official brand mark — source of truth lives at public/brand/TinyUtilities_icon.jpeg, kept
+// unmodified. The source JPEG has a black square canvas around the circular artwork, so the
+// rendered image is clipped to a circle here (container overflow-hidden + rounded-full) — this
+// only affects on-page display, never the source file.
 export function Logo() {
   return (
     <Link className="group flex items-center gap-3" href="/" aria-label="TinyUtility home">
-      <span className="relative grid size-10 place-items-center rounded-xl border border-white/15 bg-white/10 shadow-lg shadow-cyan-500/10 transition duration-300 group-hover:border-cyan-300/50 group-hover:bg-white/15">
-        <span className="absolute inset-0 rounded-xl bg-[linear-gradient(135deg,#4F46E5,#06B6D4,#14B8A6)] opacity-80" />
-        <span className="relative h-4 w-4 rounded-md border-2 border-white/90" />
+      <span className="size-10 shrink-0 overflow-hidden rounded-full transition duration-300 group-hover:scale-105">
+        <Image
+          alt="TinyUtility"
+          className="size-full object-cover"
+          height={400}
+          priority
+          src="/brand/TinyUtilities_icon.jpeg"
+          width={400}
+        />
       </span>
       <span className="text-lg font-semibold tracking-tight text-white">TinyUtility</span>
     </Link>

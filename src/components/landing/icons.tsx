@@ -45,22 +45,6 @@ export function CodeIcon({ className }: IconProps) {
   );
 }
 
-export function AiIcon({ className }: IconProps) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 3v3" />
-      <path d="M12 18v3" />
-      <path d="M3 12h3" />
-      <path d="M18 12h3" />
-      <path d="m5.6 5.6 2.1 2.1" />
-      <path d="m16.3 16.3 2.1 2.1" />
-      <path d="m18.4 5.6-2.1 2.1" />
-      <path d="m7.7 16.3-2.1 2.1" />
-      <path d="M9 12a3 3 0 1 0 6 0 3 3 0 0 0-6 0" />
-    </svg>
-  );
-}
-
 export function ConvertIcon({ className }: IconProps) {
   return (
     <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
@@ -99,6 +83,84 @@ export function MergeIcon({ className }: IconProps) {
       <path d="M7 4h8l3 3v9H7z" />
       <path d="M15 4v4h3" />
       <path d="M4 8v12h12" />
+    </svg>
+  );
+}
+
+export function ArticleIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 4h9l3 3v13H6z" />
+      <path d="M15 4v3h3" />
+      <path d="M9 11h6" />
+      <path d="M9 14h6" />
+      <path d="M9 17h3" />
+    </svg>
+  );
+}
+
+export function MailIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 5h16v14H4z" />
+      <path d="m4 6 8 7 8-7" />
+    </svg>
+  );
+}
+
+export function MenuIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 7h16" />
+      <path d="M4 12h16" />
+      <path d="M4 17h16" />
+    </svg>
+  );
+}
+
+export function CloseIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 6l12 12" />
+      <path d="M18 6 6 18" />
+    </svg>
+  );
+}
+
+export function CoffeeIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M5 9h11v5a5 5 0 0 1-5 5H9a4 4 0 0 1-4-4z" />
+      <path d="M16 10h2a2.5 2.5 0 0 1 0 5h-2" />
+      <path d="M8 3v2" />
+      <path d="M11 3v2" />
+    </svg>
+  );
+}
+
+export function XIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m4 4 16 16" />
+      <path d="m20 4-16 16" />
+    </svg>
+  );
+}
+
+export function ExternalLinkIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M14 4h6v6" />
+      <path d="M20 4 10 14" />
+      <path d="M18 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5" />
+    </svg>
+  );
+}
+
+export function ChevronRightIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m9 5 7 7-7 7" />
     </svg>
   );
 }

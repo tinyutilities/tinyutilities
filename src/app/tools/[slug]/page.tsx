@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Breadcrumbs, type BreadcrumbItem } from "@/components/tools/breadcrumbs";
 import { FAQSection, type FAQItem } from "@/components/tools/faq-section";
 import { HowItWorks, type HowItWorksStep } from "@/components/tools/how-it-works";
 import { RelatedTools } from "@/components/tools/related-tools";
 import { ToolContainer } from "@/components/tools/tool-container";
 import { ToolHeader } from "@/components/tools/tool-header";
+import { ToolIntro } from "@/components/tools/tool-intro";
 import { ToolLayout } from "@/components/tools/tool-layout";
+import { UseCases, type UseCase } from "@/components/tools/use-cases";
 import { ImageCompressorTool } from "@/features/tools/image-compressor/image-compressor-tool";
 import { ImageConverterTool } from "@/features/tools/image-converter/image-converter-tool";
 import { ImageToPdfTool } from "@/features/tools/image-to-pdf/image-to-pdf-tool";
@@ -14,7 +18,7 @@ import { PasswordGeneratorTool } from "@/features/tools/password-generator/passw
 import { PdfCompressorTool } from "@/features/tools/pdf-compressor/pdf-compressor-tool";
 import { PdfMergerTool } from "@/features/tools/pdf-merger/pdf-merger-tool";
 import { QrCodeGeneratorTool } from "@/features/tools/qr-code-generator/qr-code-generator-tool";
-import { getRelatedTools, getToolBySlug, tools } from "@/features/tools/tool-data";
+import { getRelatedTools, getToolBySlug, toolCategories, tools, type Tool } from "@/features/tools/tool-data";
 import { WordCounterTool } from "@/features/tools/word-counter/word-counter-tool";
 import { absoluteUrl, createSeoMetadata } from "@/lib/seo";
 
@@ -23,6 +27,39 @@ type ToolPageProps = {
     slug: string;
   }>;
 };
+
+// Shared style for a contextual link inside a ToolIntro paragraph, e.g. "Try the Image
+// Converter." — a real sentence, not a "related tools" card (that already exists further down).
+const inlineLinkClass = "text-cyan-300 underline decoration-cyan-300/40 underline-offset-2 transition hover:text-cyan-200";
+
+function PasswordGeneratorIntro() {
+  return (
+    <ToolIntro>
+      Create a strong, random password with the character types you choose — generated locally
+      in your browser and never sent anywhere. Sharing Wi-Fi access instead of a password?
+      Turn the result into a scannable code with the{" "}
+      <Link className={inlineLinkClass} href="/tools/qr-code-generator">
+        QR Code Generator
+      </Link>
+      .
+    </ToolIntro>
+  );
+}
+
+const passwordGeneratorUseCases: UseCase[] = [
+  {
+    title: "New account signup",
+    description: "Generate a strong password instead of reusing an old one when creating an account.",
+  },
+  {
+    title: "Password manager habit",
+    description: "Create a random password to save directly in a password manager.",
+  },
+  {
+    title: "Shared Wi-Fi",
+    description: "Generate a strong Wi-Fi password, especially before sharing it with guests.",
+  },
+];
 
 const passwordGeneratorFaq: FAQItem[] = [
   {
@@ -54,6 +91,39 @@ const passwordGeneratorSteps: HowItWorksStep[] = [
   },
 ];
 
+function ImageToPdfIntro() {
+  return (
+    <ToolIntro>
+      Turn a set of JPG, PNG, or WEBP images — scanned pages, receipts, or a small photo set —
+      into a single, shareable PDF, reordered and sized entirely in your browser. Already have
+      PDF files to combine instead? Use{" "}
+      <Link className={inlineLinkClass} href="/tools/pdf-merger">
+        PDF Merger
+      </Link>
+      , or shrink the result afterward with{" "}
+      <Link className={inlineLinkClass} href="/tools/pdf-compressor">
+        PDF Compressor
+      </Link>
+      .
+    </ToolIntro>
+  );
+}
+
+const imageToPdfUseCases: UseCase[] = [
+  {
+    title: "Scanned documents",
+    description: "Combine photos of a signed form or receipt into one PDF for submission.",
+  },
+  {
+    title: "Simple portfolios",
+    description: "Turn a handful of images into a single PDF to send or print.",
+  },
+  {
+    title: "Print-ready pages",
+    description: "Choose a standard page size and orientation before printing a photo set.",
+  },
+];
+
 const imageToPdfFaq: FAQItem[] = [
   {
     question: "Are my images uploaded anywhere?",
@@ -81,6 +151,35 @@ const imageToPdfSteps: HowItWorksStep[] = [
   {
     title: "Convert locally",
     description: "Create and download the PDF entirely inside your browser.",
+  },
+];
+
+function PdfMergerIntro() {
+  return (
+    <ToolIntro>
+      Combine multiple PDF files into a single document, reordering and rotating pages before
+      you download — entirely in your browser. If the merged file ends up too large to email or
+      upload, run it through{" "}
+      <Link className={inlineLinkClass} href="/tools/pdf-compressor">
+        PDF Compressor
+      </Link>{" "}
+      afterward.
+    </ToolIntro>
+  );
+}
+
+const pdfMergerUseCases: UseCase[] = [
+  {
+    title: "Combine reports",
+    description: "Merge separate chapters or sections into one final document.",
+  },
+  {
+    title: "Fix page order",
+    description: "Reorder or rotate pages from a scanned document that came out of order.",
+  },
+  {
+    title: "One file, not five",
+    description: "Merge multiple invoices or receipts before submitting them together.",
   },
 ];
 
@@ -125,18 +224,36 @@ const pdfMergerMetadata: Metadata = createSeoMetadata({
   title: "Free PDF Merger | TinyUtility",
   description:
     "Merge PDF files online for free. Reorder, rotate, and combine PDFs privately in your browser with no uploads.",
-  keywords: [
-    "pdf merger",
-    "merge pdf",
-    "combine pdf",
-    "free pdf merger",
-    "reorder pdf",
-    "rotate pdf",
-    "private pdf merger",
-    "TinyUtility",
-  ],
   path: "/tools/pdf-merger",
 });
+
+function PdfCompressorIntro() {
+  return (
+    <ToolIntro>
+      Shrink a PDF that&apos;s too large to email or upload by recompressing its embedded
+      images — entirely in your browser. Need to combine files first? Merge them with{" "}
+      <Link className={inlineLinkClass} href="/tools/pdf-merger">
+        PDF Merger
+      </Link>{" "}
+      before compressing the result.
+    </ToolIntro>
+  );
+}
+
+const pdfCompressorUseCases: UseCase[] = [
+  {
+    title: "Email attachments",
+    description: "Get a scanned or image-heavy PDF under your email provider's size limit.",
+  },
+  {
+    title: "Upload limits",
+    description: "Meet a job application, form, or portal's maximum file size.",
+  },
+  {
+    title: "Faster sharing",
+    description: "Shrink a large PDF before sending it over a slow connection.",
+  },
+];
 
 const pdfCompressorFaq: FAQItem[] = [
   {
@@ -184,18 +301,37 @@ const pdfCompressorMetadata: Metadata = createSeoMetadata({
   title: "Free PDF Compressor | TinyUtility",
   description:
     "Compress PDF files online for free. Shrink file size by recompressing embedded images and stripping unneeded data, entirely in your browser.",
-  keywords: [
-    "pdf compressor",
-    "compress pdf",
-    "reduce pdf size",
-    "shrink pdf",
-    "optimize pdf",
-    "free pdf compressor",
-    "private pdf compressor",
-    "TinyUtility",
-  ],
   path: "/tools/pdf-compressor",
 });
+
+function ImageCompressorIntro() {
+  return (
+    <ToolIntro>
+      Large photos slow down uploads, fill up storage, and can bounce email attachment limits.
+      Compress JPG, PNG, or WebP images entirely in your browser and pick a quality level that
+      keeps them looking sharp. Need a different file format instead? Try the{" "}
+      <Link className={inlineLinkClass} href="/tools/image-converter">
+        Image Converter
+      </Link>
+      .
+    </ToolIntro>
+  );
+}
+
+const imageCompressorUseCases: UseCase[] = [
+  {
+    title: "Email attachments",
+    description: "Shrink a photo below your email provider's size limit before attaching it.",
+  },
+  {
+    title: "Faster websites",
+    description: "Compress product photos or blog images so pages load quicker.",
+  },
+  {
+    title: "Save storage",
+    description: "Reduce a batch of photos before backing them up or archiving them.",
+  },
+];
 
 const imageCompressorFaq: FAQItem[] = [
   {
@@ -242,18 +378,40 @@ const imageCompressorMetadata: Metadata = createSeoMetadata({
   title: "Free Image Compressor | TinyUtility",
   description:
     "Compress JPG, PNG, and WebP images online for free. Resize, convert formats, and download optimized images privately in your browser.",
-  keywords: [
-    "image compressor",
-    "compress images",
-    "jpg compressor",
-    "png compressor",
-    "webp compressor",
-    "resize image",
-    "private image compression",
-    "TinyUtility",
-  ],
   path: "/tools/image-compressor",
 });
+
+function ImageConverterIntro() {
+  return (
+    <ToolIntro>
+      Not every app or platform accepts every image format. Convert JPG, PNG, and WebP files
+      into each other locally in your browser, then use{" "}
+      <Link className={inlineLinkClass} href="/tools/image-compressor">
+        Image Compressor
+      </Link>{" "}
+      if the result is still too large, or{" "}
+      <Link className={inlineLinkClass} href="/tools/image-to-pdf">
+        Image to PDF
+      </Link>{" "}
+      to turn a batch of images into one document.
+    </ToolIntro>
+  );
+}
+
+const imageConverterUseCases: UseCase[] = [
+  {
+    title: "Platform requirements",
+    description: "Convert a WebP image to JPG when a site or app doesn't accept WebP.",
+  },
+  {
+    title: "Smaller web images",
+    description: "Convert PNG screenshots to WebP for a smaller file at similar quality.",
+  },
+  {
+    title: "Consistent formats",
+    description: "Standardize a folder of mixed image formats before sharing them.",
+  },
+];
 
 const imageConverterFaq: FAQItem[] = [
   {
@@ -300,20 +458,36 @@ const imageConverterMetadata: Metadata = createSeoMetadata({
   title: "Free Image Converter | TinyUtility",
   description:
     "Convert JPG, PNG, and WebP images online for free. Batch convert images privately in your browser with no uploads.",
-  keywords: [
-    "image converter",
-    "jpg to png",
-    "png to jpg",
-    "jpg to webp",
-    "png to webp",
-    "webp to jpg",
-    "webp to png",
-    "batch image converter",
-    "private image conversion",
-    "TinyUtility",
-  ],
   path: "/tools/image-converter",
 });
+
+function QrCodeGeneratorIntro() {
+  return (
+    <ToolIntro>
+      Turn a URL, message, Wi-Fi login, or contact detail into a scannable QR code, generated
+      locally and ready to download as a PNG. Generated a strong Wi-Fi password with the{" "}
+      <Link className={inlineLinkClass} href="/tools/password-generator">
+        Password Generator
+      </Link>
+      ? Turn it into a code guests can scan instead of typing.
+    </ToolIntro>
+  );
+}
+
+const qrCodeGeneratorUseCases: UseCase[] = [
+  {
+    title: "Wi-Fi sharing",
+    description: "Let guests join your Wi-Fi by scanning a code instead of typing a password.",
+  },
+  {
+    title: "Print materials",
+    description: "Add a scannable link to a flyer, menu, or business card.",
+  },
+  {
+    title: "Quick sharing",
+    description: "Share a URL or message with someone nearby without reading it aloud.",
+  },
+];
 
 const qrCodeGeneratorFaq: FAQItem[] = [
   {
@@ -361,17 +535,32 @@ const qrCodeGeneratorMetadata: Metadata = createSeoMetadata({
   title: "Free QR Code Generator | TinyUtility",
   description:
     "Generate QR codes instantly for URLs, text, emails, Wi-Fi credentials, and more. Free online QR Code Generator by TinyUtility.",
-  keywords: [
-    "qr code generator",
-    "free qr code",
-    "generate qr code",
-    "wifi qr code",
-    "url qr code",
-    "private qr generator",
-    "TinyUtility",
-  ],
   path: "/tools/qr-code-generator",
 });
+
+function WordCounterIntro() {
+  return (
+    <ToolIntro>
+      Check word count, character count, and estimated reading time for an essay, article, or
+      script — updated live as you type or paste, entirely in your browser.
+    </ToolIntro>
+  );
+}
+
+const wordCounterUseCases: UseCase[] = [
+  {
+    title: "Meet a word limit",
+    description: "Check an essay, application, or article against a required word count.",
+  },
+  {
+    title: "Estimate reading time",
+    description: "See how long a blog post or script will take to read or narrate.",
+  },
+  {
+    title: "Clean text stats",
+    description: "Get character and sentence counts for captions or metadata fields.",
+  },
+];
 
 const wordCounterFaq: FAQItem[] = [
   {
@@ -412,18 +601,40 @@ const wordCounterMetadata: Metadata = createSeoMetadata({
   title: "Free Word Counter | TinyUtility",
   description:
     "Count words, characters, sentences, paragraphs, lines, reading time, and speaking time with a private browser-based word counter.",
-  keywords: [
-    "word counter",
-    "character counter",
-    "sentence counter",
-    "paragraph counter",
-    "reading time calculator",
-    "speaking time calculator",
-    "text analysis",
-    "TinyUtility",
-  ],
   path: "/tools/word-counter",
 });
+
+function JsonFormatterIntro() {
+  return (
+    <ToolIntro>
+      Paste messy or minified JSON to format, validate, or minify it, with live error feedback —
+      all processed locally in your browser. Working on an API or config file? Pair this with the{" "}
+      <Link className={inlineLinkClass} href="/tools/password-generator">
+        Password Generator
+      </Link>{" "}
+      for secrets, or the{" "}
+      <Link className={inlineLinkClass} href="/tools/qr-code-generator">
+        QR Code Generator
+      </Link>{" "}
+      to share a quick link.
+    </ToolIntro>
+  );
+}
+
+const jsonFormatterUseCases: UseCase[] = [
+  {
+    title: "Debug API responses",
+    description: "Paste a minified API response to make it readable and spot errors.",
+  },
+  {
+    title: "Clean up config files",
+    description: "Format JSON config files consistently before committing them.",
+  },
+  {
+    title: "Validate before use",
+    description: "Check that hand-written JSON is valid before pasting it into code.",
+  },
+];
 
 const jsonFormatterFaq: FAQItem[] = [
   {
@@ -466,42 +677,56 @@ const jsonFormatterMetadata: Metadata = createSeoMetadata({
   title: "Free JSON Formatter | TinyUtility",
   description:
     "Format, minify, and validate JSON online for free. A fast private JSON formatter that runs entirely in your browser.",
-  keywords: [
-    "json formatter",
-    "format json",
-    "json validator",
-    "json minifier",
-    "pretty print json",
-    "private json formatter",
-    "TinyUtility",
-  ],
   path: "/tools/json-formatter",
 });
 
-function buildPdfCompressorStructuredData() {
-  return {
-    "@context": "https://schema.org",
-    "@graph": [
-      {
-        "@type": "WebApplication",
-        name: "PDF Compressor",
-        url: absoluteUrl("/tools/pdf-compressor"),
-        applicationCategory: "UtilitiesApplication",
-        operatingSystem: "Any (runs in the browser)",
-        offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-        description:
-          "Compress PDF files online for free. Shrink file size by recompressing embedded images and stripping unneeded data, entirely in your browser.",
-      },
-      {
-        "@type": "FAQPage",
-        mainEntity: pdfCompressorFaq.map((item) => ({
-          "@type": "Question",
-          name: item.question,
-          acceptedAnswer: { "@type": "Answer", text: item.answer },
-        })),
-      },
-    ],
-  };
+const passwordGeneratorMetadata: Metadata = createSeoMetadata({
+  title: "Free Password Generator | TinyUtility",
+  description:
+    "Generate strong, random passwords online for free. Choose length and character types entirely in your browser — nothing is sent to a server.",
+  path: "/tools/password-generator",
+});
+
+const imageToPdfMetadata: Metadata = createSeoMetadata({
+  title: "Free Image to PDF Converter | TinyUtility",
+  description:
+    "Convert JPG, PNG, and WEBP images into a single PDF online for free. Reorder pages and choose page size privately in your browser.",
+  path: "/tools/image-to-pdf",
+});
+
+/**
+ * WebApplication + a BreadcrumbList matching the visible breadcrumb trail exactly. Applied to
+ * every tool, not just one — every field here is drawn from data already shown on the page,
+ * nothing invented: no ratings, no review counts, no download counts, no fabricated pricing
+ * beyond the real "free, $0" price.
+ *
+ * No FAQPage entry: FAQ rich results have no current benefit to chase here, and the visible
+ * FAQ content (see `FAQSection` below) is the useful part regardless of whether a schema
+ * wrapper around it does anything for search results today.
+ */
+function buildToolStructuredData(tool: Tool, breadcrumbItems: BreadcrumbItem[]) {
+  const graph: Array<Record<string, unknown>> = [
+    {
+      "@type": "WebApplication",
+      name: tool.title,
+      url: absoluteUrl(`/tools/${tool.slug}`),
+      applicationCategory: "UtilitiesApplication",
+      operatingSystem: "Any (runs in the browser)",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+      description: tool.description,
+    },
+    {
+      "@type": "BreadcrumbList",
+      itemListElement: breadcrumbItems.map((item, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        name: item.label,
+        ...(item.href ? { item: absoluteUrl(item.href) } : {}),
+      })),
+    },
+  ];
+
+  return { "@context": "https://schema.org", "@graph": graph };
 }
 
 export function generateStaticParams() {
@@ -548,6 +773,14 @@ export async function generateMetadata({ params }: ToolPageProps) {
     return jsonFormatterMetadata;
   }
 
+  if (slug === "password-generator") {
+    return passwordGeneratorMetadata;
+  }
+
+  if (slug === "image-to-pdf") {
+    return imageToPdfMetadata;
+  }
+
   return createSeoMetadata({
     title: `${tool.title} | TinyUtility`,
     description: tool.description,
@@ -583,6 +816,16 @@ export default async function ToolPage({ params }: ToolPageProps) {
                   : slug === "json-formatter"
                     ? jsonFormatterFaq
                   : [];
+
+  const categorySlug = toolCategories.find((category) => category.title === tool.category)?.slug;
+  const breadcrumbItems: BreadcrumbItem[] = [
+    { label: "Home", href: "/" },
+    { label: "Tools", href: "/tools" },
+    ...(categorySlug ? [{ label: tool.category, href: `/tools#${categorySlug}-tools` }] : []),
+    { label: tool.title },
+  ];
+  const structuredData = buildToolStructuredData(tool, breadcrumbItems);
+
   const isPasswordGenerator = slug === "password-generator";
   const isImageToPdf = slug === "image-to-pdf";
   const isPdfMerger = slug === "pdf-merger";
@@ -596,6 +839,7 @@ export default async function ToolPage({ params }: ToolPageProps) {
   return (
     <ToolLayout>
       <ToolContainer>
+        <Breadcrumbs items={breadcrumbItems} />
         <ToolHeader
           statusLabel={
             isPasswordGenerator ||
@@ -614,69 +858,83 @@ export default async function ToolPage({ params }: ToolPageProps) {
         />
         {isPasswordGenerator ? (
           <>
+            <PasswordGeneratorIntro />
             <PasswordGeneratorTool />
             <HowItWorks steps={passwordGeneratorSteps} title="Private password generation in your browser" />
+            <UseCases items={passwordGeneratorUseCases} />
           </>
         ) : null}
         {isImageToPdf ? (
           <>
+            <ImageToPdfIntro />
             <ImageToPdfTool />
             <HowItWorks steps={imageToPdfSteps} title="Image to PDF conversion in your browser" />
+            <UseCases items={imageToPdfUseCases} />
           </>
         ) : null}
         {isPdfMerger ? (
           <>
+            <PdfMergerIntro />
             <PdfMergerTool />
             <HowItWorks steps={pdfMergerSteps} title="Private PDF merging in your browser" />
+            <UseCases items={pdfMergerUseCases} />
           </>
         ) : null}
         {isPdfCompressor ? (
           <>
+            <PdfCompressorIntro />
             <PdfCompressorTool />
             <HowItWorks steps={pdfCompressorSteps} title="Private PDF compression in your browser" />
+            <UseCases items={pdfCompressorUseCases} />
           </>
         ) : null}
         {isImageCompressor ? (
           <>
+            <ImageCompressorIntro />
             <ImageCompressorTool />
             <HowItWorks steps={imageCompressorSteps} title="Private image compression in your browser" />
+            <UseCases items={imageCompressorUseCases} />
           </>
         ) : null}
         {isImageConverter ? (
           <>
+            <ImageConverterIntro />
             <ImageConverterTool />
             <HowItWorks steps={imageConverterSteps} title="Private image conversion in your browser" />
+            <UseCases items={imageConverterUseCases} />
           </>
         ) : null}
         {isQrCodeGenerator ? (
           <>
+            <QrCodeGeneratorIntro />
             <QrCodeGeneratorTool />
             <HowItWorks steps={qrCodeGeneratorSteps} title="Private QR code generation in your browser" />
+            <UseCases items={qrCodeGeneratorUseCases} />
           </>
         ) : null}
         {isWordCounter ? (
           <>
+            <WordCounterIntro />
             <WordCounterTool />
             <HowItWorks steps={wordCounterSteps} title="Private word counting in your browser" />
+            <UseCases items={wordCounterUseCases} />
           </>
         ) : null}
         {isJsonFormatter ? (
           <>
+            <JsonFormatterIntro />
             <JsonFormatterTool />
             <HowItWorks steps={jsonFormatterSteps} title="Private JSON formatting in your browser" />
+            <UseCases items={jsonFormatterUseCases} />
           </>
         ) : null}
         <FAQSection items={faqItems} />
         <RelatedTools tools={getRelatedTools(slug)} />
       </ToolContainer>
-      {isPdfCompressor ? (
-        <script
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(buildPdfCompressorStructuredData()),
-          }}
-          type="application/ld+json"
-        />
-      ) : null}
+      <script
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        type="application/ld+json"
+      />
     </ToolLayout>
   );
 }
