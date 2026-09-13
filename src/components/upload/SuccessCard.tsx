@@ -19,6 +19,9 @@ type SuccessCardProps = {
   justDownloaded?: boolean;
   /** Optional slot for per-file breakdowns below the hero. */
   children?: ReactNode;
+  /** Optional slot rendered after the stats grid but before the download/reset buttons — e.g.
+   *  a `FilenameField`, so the user can see/edit the filename before triggering the download. */
+  beforeActions?: ReactNode;
 };
 
 /**
@@ -37,6 +40,7 @@ export function SuccessCard({
   resetLabel = "Process Another File",
   justDownloaded = false,
   children,
+  beforeActions,
 }: SuccessCardProps) {
   const downloadButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -83,6 +87,8 @@ export function SuccessCard({
           ))}
         </dl>
       ) : null}
+
+      {beforeActions ? <div className="mt-6 w-full">{beforeActions}</div> : null}
 
       {/* Download is the visual focus: full-width, largest control, gradient fill.
           Reset is intentionally quieter so it never competes for attention. */}

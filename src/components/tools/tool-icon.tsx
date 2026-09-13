@@ -1,10 +1,12 @@
 import {
   CodeIcon,
   ConvertIcon,
+  CropIcon,
   ImageIcon,
   MergeIcon,
   PdfIcon,
   QrIcon,
+  ResizeIcon,
   ShieldIcon,
   TextIcon,
 } from "@/components/landing/icons";
@@ -18,10 +20,12 @@ type ToolIconProps = {
 const iconMap = {
   code: CodeIcon,
   convert: ConvertIcon,
+  crop: CropIcon,
   image: ImageIcon,
   merge: MergeIcon,
   pdf: PdfIcon,
   qr: QrIcon,
+  resize: ResizeIcon,
   shield: ShieldIcon,
   text: TextIcon,
 };
