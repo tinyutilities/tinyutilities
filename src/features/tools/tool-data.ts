@@ -8,10 +8,13 @@ export type ToolCategory = {
 export type ToolIconName =
   | "code"
   | "convert"
+  | "crop"
+  | "extract"
   | "image"
   | "merge"
   | "pdf"
   | "qr"
+  | "resize"
   | "shield"
   | "text";
 
@@ -32,13 +35,13 @@ export const toolCategories: ToolCategory[] = [
     title: "Image Tools",
     description: "Compress, convert, and prepare images for the web.",
     slug: "image",
-    toolCount: 3,
+    toolCount: 4,
   },
   {
     title: "PDF Tools",
     description: "Combine, convert, and organize document workflows.",
     slug: "pdf",
-    toolCount: 3,
+    toolCount: 4,
   },
   {
     title: "Developer Tools",
@@ -74,6 +77,24 @@ export const tools: Tool[] = [
     keywords: ["jpg", "jpeg", "png", "webp", "format"],
   },
   {
+    title: "Image Resizer",
+    description: "Resize an image to exact dimensions while keeping the aspect ratio.",
+    blurb: "Resize images",
+    slug: "image-resizer",
+    category: "Image Tools",
+    icon: "resize",
+    keywords: ["resize image", "change dimensions", "scale image", "resize for web"],
+  },
+  {
+    title: "Image Cropper",
+    description: "Crop an image to the exact area or aspect ratio you need.",
+    blurb: "Crop images",
+    slug: "image-cropper",
+    category: "Image Tools",
+    icon: "crop",
+    keywords: ["crop image", "crop photo", "square crop", "aspect ratio crop"],
+  },
+  {
     title: "Image to PDF",
     description: "Turn image files into a clean PDF document.",
     blurb: "Images to PDF",
@@ -99,6 +120,15 @@ export const tools: Tool[] = [
     category: "PDF Tools",
     icon: "pdf",
     keywords: ["shrink pdf", "reduce pdf size", "optimize pdf", "compress"],
+  },
+  {
+    title: "PDF Page Extractor",
+    description: "Select pages from a PDF and save them as a new PDF.",
+    blurb: "Extract pages",
+    slug: "pdf-page-extractor",
+    category: "PDF Tools",
+    icon: "extract",
+    keywords: ["extract pages", "select pages", "get pages from pdf", "pull pages"],
   },
   {
     title: "Password Generator",

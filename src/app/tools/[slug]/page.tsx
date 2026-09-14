@@ -12,11 +12,14 @@ import { ToolLayout } from "@/components/tools/tool-layout";
 import { UseCases, type UseCase } from "@/components/tools/use-cases";
 import { ImageCompressorTool } from "@/features/tools/image-compressor/image-compressor-tool";
 import { ImageConverterTool } from "@/features/tools/image-converter/image-converter-tool";
+import { ImageCropperTool } from "@/features/tools/image-cropper/image-cropper-tool";
+import { ImageResizerTool } from "@/features/tools/image-resizer/image-resizer-tool";
 import { ImageToPdfTool } from "@/features/tools/image-to-pdf/image-to-pdf-tool";
 import { JsonFormatterTool } from "@/features/tools/json-formatter/json-formatter-tool";
 import { PasswordGeneratorTool } from "@/features/tools/password-generator/password-generator-tool";
 import { PdfCompressorTool } from "@/features/tools/pdf-compressor/pdf-compressor-tool";
 import { PdfMergerTool } from "@/features/tools/pdf-merger/pdf-merger-tool";
+import { PdfPageExtractorTool } from "@/features/tools/pdf-page-extractor/pdf-page-extractor-tool";
 import { QrCodeGeneratorTool } from "@/features/tools/qr-code-generator/qr-code-generator-tool";
 import { getRelatedTools, getToolBySlug, toolCategories, tools, type Tool } from "@/features/tools/tool-data";
 import { WordCounterTool } from "@/features/tools/word-counter/word-counter-tool";
@@ -304,6 +307,82 @@ const pdfCompressorMetadata: Metadata = createSeoMetadata({
   path: "/tools/pdf-compressor",
 });
 
+function PdfPageExtractorIntro() {
+  return (
+    <ToolIntro>
+      Pull specific pages out of a PDF — say, pages 1, 3, and 8 through 12 — and save them as a
+      new PDF, entirely in your browser. Need to combine the result with another file afterward?
+      Use{" "}
+      <Link className={inlineLinkClass} href="/tools/pdf-merger">
+        PDF Merger
+      </Link>
+      , or shrink it with{" "}
+      <Link className={inlineLinkClass} href="/tools/pdf-compressor">
+        PDF Compressor
+      </Link>
+      .
+    </ToolIntro>
+  );
+}
+
+const pdfPageExtractorUseCases: UseCase[] = [
+  {
+    title: "Just the relevant pages",
+    description: "Pull the pages you actually need from a long report instead of sending the whole thing.",
+  },
+  {
+    title: "Assignment or problem set",
+    description: "Save only your solutions from a scanned assignment or worksheet packet.",
+  },
+  {
+    title: "A smaller, focused PDF",
+    description: "Create a shorter PDF containing just the pages relevant to one topic or section.",
+  },
+];
+
+const pdfPageExtractorFaq: FAQItem[] = [
+  {
+    question: "Is my PDF uploaded anywhere?",
+    answer: "No. Your PDF is loaded, and the new PDF is created, entirely in your browser.",
+  },
+  {
+    question: "What order are the extracted pages in?",
+    answer:
+      "Extracted pages always keep their original order from the source PDF, regardless of the order you selected them in.",
+  },
+  {
+    question: "Can I select pages with a text field instead of clicking?",
+    answer:
+      "Yes. Type page numbers and ranges like \"1, 3, 5-8\" and click Apply — it replaces the current selection.",
+  },
+  {
+    question: "Can I extract pages from a password-protected PDF?",
+    answer: "Not yet. Remove the password first, then add the file again.",
+  },
+];
+
+const pdfPageExtractorSteps: HowItWorksStep[] = [
+  {
+    title: "Add a PDF",
+    description: "Drag and drop or browse for a PDF file up to 100 MB.",
+  },
+  {
+    title: "Select pages",
+    description: "Tap the pages you want to keep, or type page numbers and ranges.",
+  },
+  {
+    title: "Extract locally",
+    description: "Create the new PDF in your browser, rename it, and download the result.",
+  },
+];
+
+const pdfPageExtractorMetadata: Metadata = createSeoMetadata({
+  title: "PDF Page Extractor – Extract Pages from PDF | TinyUtility",
+  description:
+    "Select specific pages from a PDF and save them as a new PDF, entirely in your browser. No uploads, no page limit beyond your own file.",
+  path: "/tools/pdf-page-extractor",
+});
+
 function ImageCompressorIntro() {
   return (
     <ToolIntro>
@@ -459,6 +538,155 @@ const imageConverterMetadata: Metadata = createSeoMetadata({
   description:
     "Convert JPG, PNG, and WebP images online for free. Batch convert images privately in your browser with no uploads.",
   path: "/tools/image-converter",
+});
+
+function ImageResizerIntro() {
+  return (
+    <ToolIntro>
+      Change an image&apos;s dimensions for a website, social media post, or upload limit —
+      entirely in your browser. Lock the aspect ratio to scale proportionally, or unlock it for
+      exact width and height. Need a specific crop instead of a resize? Try the{" "}
+      <Link className={inlineLinkClass} href="/tools/image-cropper">
+        Image Cropper
+      </Link>
+      , or shrink the file size with{" "}
+      <Link className={inlineLinkClass} href="/tools/image-compressor">
+        Image Compressor
+      </Link>
+      .
+    </ToolIntro>
+  );
+}
+
+const imageResizerUseCases: UseCase[] = [
+  {
+    title: "Resize for the web",
+    description: "Scale a photo down to the exact dimensions a website or CMS expects.",
+  },
+  {
+    title: "Social media dimensions",
+    description: "Match the pixel dimensions a platform recommends for posts, banners, or avatars.",
+  },
+  {
+    title: "Smaller uploads",
+    description: "Shrink a large camera photo before attaching it somewhere with a size limit.",
+  },
+];
+
+const imageResizerFaq: FAQItem[] = [
+  {
+    question: "Are my images uploaded anywhere?",
+    answer: "No. Images are resized entirely in your browser and never leave your device.",
+  },
+  {
+    question: "Which image formats are supported?",
+    answer: "You can upload JPEG, PNG, or WebP images. The resized image keeps the same format.",
+  },
+  {
+    question: "Does resizing keep the aspect ratio?",
+    answer:
+      "Yes, when the lock is on. Turn it off if you need to set width and height independently.",
+  },
+  {
+    question: "Can I resize the same image again with different dimensions?",
+    answer: "Yes. Adjust the width or height and resize again without re-uploading the file.",
+  },
+];
+
+const imageResizerSteps: HowItWorksStep[] = [
+  {
+    title: "Add an image",
+    description: "Drag and drop or browse for a JPG, PNG, or WebP file up to 100 MB.",
+  },
+  {
+    title: "Set dimensions",
+    description: "Enter a width and height, keeping the aspect ratio locked or setting it free.",
+  },
+  {
+    title: "Resize locally",
+    description: "Create the resized image in your browser, rename it, and download the result.",
+  },
+];
+
+const imageResizerMetadata: Metadata = createSeoMetadata({
+  title: "Free Image Resizer | TinyUtility",
+  description:
+    "Resize JPG, PNG, and WebP images online for free. Change image dimensions with a locked or free aspect ratio, entirely in your browser.",
+  path: "/tools/image-resizer",
+});
+
+function ImageCropperIntro() {
+  return (
+    <ToolIntro>
+      Crop an image to the exact area or aspect ratio you need — for a profile photo, a social
+      post, or just to remove the edges — entirely in your browser. Drag the box to reposition it
+      or a corner handle to resize it. Need exact pixel dimensions instead of a crop area? Try the{" "}
+      <Link className={inlineLinkClass} href="/tools/image-resizer">
+        Image Resizer
+      </Link>
+      .
+    </ToolIntro>
+  );
+}
+
+const imageCropperUseCases: UseCase[] = [
+  {
+    title: "Profile and avatar photos",
+    description: "Crop a photo to a square before uploading it as a profile picture.",
+  },
+  {
+    title: "Social media crops",
+    description: "Crop to a platform's recommended aspect ratio, like 1:1, 4:3, or 16:9.",
+  },
+  {
+    title: "Remove unwanted edges",
+    description: "Trim distracting background or empty space from a screenshot or photo.",
+  },
+];
+
+const imageCropperFaq: FAQItem[] = [
+  {
+    question: "Are my images uploaded anywhere?",
+    answer: "No. Images are cropped entirely in your browser and never leave your device.",
+  },
+  {
+    question: "Which image formats are supported?",
+    answer: "You can upload JPEG, PNG, or WebP images. The cropped image keeps the same format.",
+  },
+  {
+    question: "Can I use a specific aspect ratio?",
+    answer: "Yes. Choose Free, 1:1, 4:3, or 16:9, or drag the crop box freely with no preset.",
+  },
+  {
+    question: "Does this work on a phone?",
+    answer: "Yes. The crop box supports touch dragging and resizing on mobile, not just a mouse.",
+  },
+  {
+    question: "Can I crop the same image again with a different area?",
+    answer: "Yes. Adjust the crop box and crop again without re-uploading the file.",
+  },
+];
+
+const imageCropperSteps: HowItWorksStep[] = [
+  {
+    title: "Add an image",
+    description: "Drag and drop or browse for a JPG, PNG, or WebP file up to 100 MB.",
+  },
+  {
+    title: "Select the crop area",
+    description: "Drag the box to move it or a corner handle to resize it, with optional aspect-ratio presets.",
+  },
+  {
+    title: "Crop locally",
+    description: "Create the cropped image in your browser, rename it, and download the result.",
+  },
+];
+
+const imageCropperMetadata: Metadata = createSeoMetadata({
+  title: "Free Image Cropper | TinyUtility",
+  description:
+    "Crop JPG, PNG, and WebP images online for free. Drag to select the area, choose a preset aspect ratio, and download privately from your browser.",
+  path: "/tools/image-cropper",
 });
 
 function QrCodeGeneratorIntro() {
@@ -753,12 +981,24 @@ export async function generateMetadata({ params }: ToolPageProps) {
     return imageConverterMetadata;
   }
 
+  if (slug === "image-resizer") {
+    return imageResizerMetadata;
+  }
+
+  if (slug === "image-cropper") {
+    return imageCropperMetadata;
+  }
+
   if (slug === "pdf-merger") {
     return pdfMergerMetadata;
   }
 
   if (slug === "pdf-compressor") {
     return pdfCompressorMetadata;
+  }
+
+  if (slug === "pdf-page-extractor") {
+    return pdfPageExtractorMetadata;
   }
 
   if (slug === "qr-code-generator") {
@@ -805,10 +1045,16 @@ export default async function ToolPage({ params }: ToolPageProps) {
           ? pdfMergerFaq
           : slug === "pdf-compressor"
             ? pdfCompressorFaq
+          : slug === "pdf-page-extractor"
+            ? pdfPageExtractorFaq
           : slug === "image-compressor"
             ? imageCompressorFaq
             : slug === "image-converter"
               ? imageConverterFaq
+            : slug === "image-resizer"
+              ? imageResizerFaq
+            : slug === "image-cropper"
+              ? imageCropperFaq
               : slug === "qr-code-generator"
                 ? qrCodeGeneratorFaq
                 : slug === "word-counter"
@@ -830,8 +1076,11 @@ export default async function ToolPage({ params }: ToolPageProps) {
   const isImageToPdf = slug === "image-to-pdf";
   const isPdfMerger = slug === "pdf-merger";
   const isPdfCompressor = slug === "pdf-compressor";
+  const isPdfPageExtractor = slug === "pdf-page-extractor";
   const isImageCompressor = slug === "image-compressor";
   const isImageConverter = slug === "image-converter";
+  const isImageResizer = slug === "image-resizer";
+  const isImageCropper = slug === "image-cropper";
   const isQrCodeGenerator = slug === "qr-code-generator";
   const isWordCounter = slug === "word-counter";
   const isJsonFormatter = slug === "json-formatter";
@@ -846,8 +1095,11 @@ export default async function ToolPage({ params }: ToolPageProps) {
             isImageToPdf ||
             isPdfMerger ||
             isPdfCompressor ||
+            isPdfPageExtractor ||
             isImageCompressor ||
             isImageConverter ||
+            isImageResizer ||
+            isImageCropper ||
             isQrCodeGenerator ||
             isWordCounter ||
             isJsonFormatter
@@ -888,6 +1140,14 @@ export default async function ToolPage({ params }: ToolPageProps) {
             <UseCases items={pdfCompressorUseCases} />
           </>
         ) : null}
+        {isPdfPageExtractor ? (
+          <>
+            <PdfPageExtractorIntro />
+            <PdfPageExtractorTool />
+            <HowItWorks steps={pdfPageExtractorSteps} title="Private PDF page extraction in your browser" />
+            <UseCases items={pdfPageExtractorUseCases} />
+          </>
+        ) : null}
         {isImageCompressor ? (
           <>
             <ImageCompressorIntro />
@@ -902,6 +1162,22 @@ export default async function ToolPage({ params }: ToolPageProps) {
             <ImageConverterTool />
             <HowItWorks steps={imageConverterSteps} title="Private image conversion in your browser" />
             <UseCases items={imageConverterUseCases} />
+          </>
+        ) : null}
+        {isImageResizer ? (
+          <>
+            <ImageResizerIntro />
+            <ImageResizerTool />
+            <HowItWorks steps={imageResizerSteps} title="Private image resizing in your browser" />
+            <UseCases items={imageResizerUseCases} />
+          </>
+        ) : null}
+        {isImageCropper ? (
+          <>
+            <ImageCropperIntro />
+            <ImageCropperTool />
+            <HowItWorks steps={imageCropperSteps} title="Private image cropping in your browser" />
+            <UseCases items={imageCropperUseCases} />
           </>
         ) : null}
         {isQrCodeGenerator ? (

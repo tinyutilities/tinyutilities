@@ -12,7 +12,15 @@ const compat = new FlatCompat({
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
-    ignores: [".next/**", "node_modules/**", "out/**", "next-env.d.ts"],
+    ignores: [
+      ".next/**",
+      "node_modules/**",
+      "out/**",
+      "next-env.d.ts",
+      // Vendored, pre-minified pdf.js worker script copied verbatim from pdfjs-dist —
+      // not source we maintain, so it shouldn't be linted.
+      "public/pdf.worker.min.mjs",
+    ],
   },
 ];
 

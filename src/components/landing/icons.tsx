@@ -184,3 +184,13 @@ export function CropIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function ExtractPagesIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M7 3h7l4 4v14H7z" />
+      <path d="M14 3v5h4" />
+      <path d="m9.5 14.5 1.5 1.5 3.5-3.5" />
+    </svg>
+  );
+}

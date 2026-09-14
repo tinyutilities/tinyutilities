@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   buildDownloadFilename,
   ErrorCard,
@@ -271,7 +271,17 @@ export function ImageResizerTool() {
 
       {showSuccessHero && result ? (
         <SuccessCard
-          beforeActions={<FilenameField extension={extension} onChange={setFilenameBase} value={filenameBase} />}
+          beforeActions={
+            <div className="space-y-6">
+              {/* eslint-disable-next-line @next/next/no-img-element -- local object URL, not a next/image-eligible asset */}
+              <img
+                alt={`Resized preview, ${result.width} by ${result.height} pixels`}
+                className="mx-auto max-h-64 w-auto max-w-full rounded-xl object-contain ring-1 ring-white/10"
+                src={result.previewUrl}
+              />
+              <FilenameField extension={extension} onChange={setFilenameBase} value={filenameBase} />
+            </div>
+          }
           downloadLabel="Download Image"
           justDownloaded={justDownloaded}
           onDownload={downloadResult}
