@@ -58,7 +58,7 @@ function getPdfErrorMessage(fileName: string, error: unknown) {
 }
 
 function sanitizeFilename(value: string) {
-  const trimmed = value.trim();
+  const trimmed = value.replace(/[/\\:*?"<>|]/g, "").trim();
 
   if (!trimmed) {
     return defaultFilename;

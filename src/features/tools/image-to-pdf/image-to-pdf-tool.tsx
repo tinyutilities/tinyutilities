@@ -1,19 +1,11 @@
 "use client";
 
-import {
-  clip,
-  closePath,
-  endPath,
-  lineTo,
-  moveTo,
-  PDFDocument,
-  popGraphicsState,
-  pushGraphicsState,
-} from "pdf-lib";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  buildDownloadFilename,
   ErrorCard,
   EstimatePanel,
+  FilenameField,
   formatBytes,
   ProcessingState,
   ProgressIndicator,
@@ -22,6 +14,8 @@ import {
   UploadCard,
 } from "@/components/upload";
 import type { UploadPhase } from "@/components/upload";
+
+const defaultFilenameBase = "TinyUtility-Images";
 
 type UploadedImage = {
   id: string;
@@ -48,6 +42,13 @@ const margins: Record<MarginSize, number> = {
 };
 /** Treat one CSS pixel as one PDF point when a page is sized to match its source image. */
 const PIXELS_TO_POINTS = 0.75;
+
+/** pdf-lib is only needed once the user actually converts images, so it's dynamically imported
+ *  here rather than bundled with every tool page's initial JS — same lazy-load pattern used by
+ *  the other pdf-lib-based tools (PDF Merger, PDF Compressor, etc.). */
+function loadPdfLib() {
+  return import("pdf-lib");
+}
 
 function createImageRecord(file: File): Promise<UploadedImage> {
   return new Promise((resolve, reject) => {
@@ -159,6 +160,7 @@ export function ImageToPdfTool() {
   const [progress, setProgress] = useState<number | undefined>(undefined);
   const [resultBlob, setResultBlob] = useState<Blob | null>(null);
   const [justDownloaded, setJustDownloaded] = useState(false);
+  const [filenameBase, setFilenameBase] = useState(defaultFilenameBase);
 
   const imageCountLabel = images.length === 1 ? "1 image selected" : `${images.length} images selected`;
   const totalSize = useMemo(
@@ -235,6 +237,7 @@ export function ImageToPdfTool() {
     setPhase("idle");
     setErrorMessage(null);
     setJustDownloaded(false);
+    setFilenameBase(defaultFilenameBase);
   };
 
   const moveImage = (index: number, direction: -1 | 1) => {
@@ -263,6 +266,8 @@ export function ImageToPdfTool() {
     setProgress(0);
 
     try {
+      const { PDFDocument, clip, closePath, endPath, lineTo, moveTo, popGraphicsState, pushGraphicsState } =
+        await loadPdfLib();
       const pdfDoc = await PDFDocument.create();
       const pageMargin = margins[margin];
 
@@ -327,7 +332,7 @@ export function ImageToPdfTool() {
 
   const downloadPdf = () => {
     if (!resultBlob) return;
-    downloadBlob(resultBlob, "tinyutility-images.pdf");
+    downloadBlob(resultBlob, buildDownloadFilename(filenameBase, "pdf", defaultFilenameBase));
     markDownloaded();
   };
 
@@ -345,6 +350,7 @@ export function ImageToPdfTool() {
 
       {showSuccessHero ? (
         <SuccessCard
+          beforeActions={<FilenameField extension="pdf" onChange={setFilenameBase} value={filenameBase} />}
           downloadLabel="Download PDF"
           justDownloaded={justDownloaded}
           onDownload={downloadPdf}

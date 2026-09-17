@@ -10,19 +10,30 @@ import { ToolHeader } from "@/components/tools/tool-header";
 import { ToolIntro } from "@/components/tools/tool-intro";
 import { ToolLayout } from "@/components/tools/tool-layout";
 import { UseCases, type UseCase } from "@/components/tools/use-cases";
+import { FindAndReplaceTool } from "@/features/tools/find-and-replace/find-and-replace-tool";
+import { TextDiffTool } from "@/features/tools/text-diff/text-diff-tool";
 import { ImageCompressorTool } from "@/features/tools/image-compressor/image-compressor-tool";
 import { ImageConverterTool } from "@/features/tools/image-converter/image-converter-tool";
 import { ImageCropperTool } from "@/features/tools/image-cropper/image-cropper-tool";
 import { ImageResizerTool } from "@/features/tools/image-resizer/image-resizer-tool";
 import { ImageToPdfTool } from "@/features/tools/image-to-pdf/image-to-pdf-tool";
 import { JsonFormatterTool } from "@/features/tools/json-formatter/json-formatter-tool";
+import { UrlEncoderDecoderTool } from "@/features/tools/url-encoder-decoder/url-encoder-decoder-tool";
+import { UuidGeneratorTool } from "@/features/tools/uuid-generator/uuid-generator-tool";
+import { TimestampConverterTool } from "@/features/tools/timestamp-converter/timestamp-converter-tool";
+import { RegexTesterTool } from "@/features/tools/regex-tester/regex-tester-tool";
 import { PasswordGeneratorTool } from "@/features/tools/password-generator/password-generator-tool";
 import { PdfCompressorTool } from "@/features/tools/pdf-compressor/pdf-compressor-tool";
 import { PdfMergerTool } from "@/features/tools/pdf-merger/pdf-merger-tool";
+import { PdfMetadataCleanerTool } from "@/features/tools/pdf-metadata-cleaner/pdf-metadata-cleaner-tool";
+import { PdfPageEditorTool } from "@/features/tools/pdf-page-editor/pdf-page-editor-tool";
 import { PdfPageExtractorTool } from "@/features/tools/pdf-page-extractor/pdf-page-extractor-tool";
+import { PdfSplitterTool } from "@/features/tools/pdf-splitter/pdf-splitter-tool";
 import { QrCodeGeneratorTool } from "@/features/tools/qr-code-generator/qr-code-generator-tool";
 import { getRelatedTools, getToolBySlug, toolCategories, tools, type Tool } from "@/features/tools/tool-data";
 import { WordCounterTool } from "@/features/tools/word-counter/word-counter-tool";
+import { ZipCreatorTool } from "@/features/tools/zip-creator/zip-creator-tool";
+import { ZipExtractorTool } from "@/features/tools/zip-extractor/zip-extractor-tool";
 import { absoluteUrl, createSeoMetadata } from "@/lib/seo";
 
 type ToolPageProps = {
@@ -381,6 +392,246 @@ const pdfPageExtractorMetadata: Metadata = createSeoMetadata({
   description:
     "Select specific pages from a PDF and save them as a new PDF, entirely in your browser. No uploads, no page limit beyond your own file.",
   path: "/tools/pdf-page-extractor",
+});
+
+function PdfPageEditorIntro() {
+  return (
+    <ToolIntro>
+      Rotate pages that scanned in sideways and remove the ones you don&apos;t need, then save the
+      result as a new PDF — entirely in your browser. Need only a handful of pages instead? Try{" "}
+      <Link className={inlineLinkClass} href="/tools/pdf-page-extractor">
+        PDF Page Extractor
+      </Link>
+      , or combine the result with another file using{" "}
+      <Link className={inlineLinkClass} href="/tools/pdf-merger">
+        PDF Merger
+      </Link>
+      .
+    </ToolIntro>
+  );
+}
+
+const pdfPageEditorUseCases: UseCase[] = [
+  {
+    title: "Fix a sideways scan",
+    description: "Rotate pages that came out of a scanner rotated 90° or upside down.",
+  },
+  {
+    title: "Remove blank or unwanted pages",
+    description: "Delete cover sheets, blank pages, or scanned pages you don't need before sharing a PDF.",
+  },
+  {
+    title: "Clean up before sending",
+    description: "Straighten and trim a document down to just the pages that matter.",
+  },
+];
+
+const pdfPageEditorFaq: FAQItem[] = [
+  {
+    question: "Is my PDF uploaded anywhere?",
+    answer: "No. Your PDF is loaded, and the new PDF is created, entirely in your browser.",
+  },
+  {
+    question: "How do I rotate or delete pages?",
+    answer:
+      "Select one or more pages in the grid, then use Rotate Left, Rotate Right, or Delete Selected. Each page's thumbnail shows its current rotation and deletion state.",
+  },
+  {
+    question: "Can I undo a deletion before exporting?",
+    answer:
+      "Yes. Deleted pages stay visible in the grid marked \"Deleted\" — select them and click Restore Selected any time before you export.",
+  },
+  {
+    question: "Can I export a PDF with zero pages?",
+    answer: "No. Export is disabled if every page is marked for deletion — keep at least one page.",
+  },
+  {
+    question: "Can I edit a password-protected PDF?",
+    answer: "Not yet. Remove the password first, then add the file again.",
+  },
+];
+
+const pdfPageEditorSteps: HowItWorksStep[] = [
+  {
+    title: "Add a PDF",
+    description: "Drag and drop or browse for a PDF file up to 100 MB.",
+  },
+  {
+    title: "Rotate and delete pages",
+    description: "Select pages, then rotate them left/right or mark them for deletion.",
+  },
+  {
+    title: "Export locally",
+    description: "Create the new PDF in your browser, rename it, and download the result.",
+  },
+];
+
+const pdfPageEditorMetadata: Metadata = createSeoMetadata({
+  title: "PDF Page Editor – Rotate & Delete PDF Pages | TinyUtility",
+  description:
+    "Rotate and delete pages in a PDF, then save the result as a new PDF, entirely in your browser. No uploads, no page limit beyond your own file.",
+  path: "/tools/pdf-page-editor",
+});
+
+function PdfSplitterIntro() {
+  return (
+    <ToolIntro>
+      Split one PDF into several smaller PDFs — by page range, every few pages, or wherever you
+      want a new file to start — entirely in your browser. Only need a few pages pulled out
+      instead? Try{" "}
+      <Link className={inlineLinkClass} href="/tools/pdf-page-extractor">
+        PDF Page Extractor
+      </Link>
+      , or put files back together afterward with{" "}
+      <Link className={inlineLinkClass} href="/tools/pdf-merger">
+        PDF Merger
+      </Link>
+      .
+    </ToolIntro>
+  );
+}
+
+const pdfSplitterUseCases: UseCase[] = [
+  {
+    title: "Break up a long report",
+    description: "Split a large report into separate PDFs for each chapter or section.",
+  },
+  {
+    title: "Share only part of a scan",
+    description: "Split a scanned batch into individual PDFs for each document it contains.",
+  },
+  {
+    title: "Even-sized chunks",
+    description: "Split a long PDF into equal-sized pieces, like every 10 pages, for easier review.",
+  },
+];
+
+const pdfSplitterFaq: FAQItem[] = [
+  {
+    question: "Is my PDF uploaded anywhere?",
+    answer: "No. Your PDF is loaded, and the new PDFs are created, entirely in your browser.",
+  },
+  {
+    question: "How does the page range syntax work?",
+    answer:
+      "Each comma-separated group becomes its own PDF — \"1-3, 4-6\" creates two files. Every page must belong to exactly one group.",
+  },
+  {
+    question: "What happens if my ranges overlap or skip a page?",
+    answer:
+      "You'll see a clear error message, such as which page is included in more than one group, and Split stays disabled until it's fixed.",
+  },
+  {
+    question: "How do I download the results?",
+    answer:
+      "All generated PDFs are packaged into one ZIP file by default. You can also download each PDF individually from the results list.",
+  },
+  {
+    question: "Can I split a password-protected PDF?",
+    answer: "Not yet. Remove the password first, then add the file again.",
+  },
+];
+
+const pdfSplitterSteps: HowItWorksStep[] = [
+  {
+    title: "Add a PDF",
+    description: "Drag and drop or browse for a PDF file up to 100 MB.",
+  },
+  {
+    title: "Choose how to split it",
+    description: "Define page ranges, split every N pages, or split after specific pages.",
+  },
+  {
+    title: "Split locally",
+    description: "Create the PDFs in your browser, then download them as a ZIP or individually.",
+  },
+];
+
+const pdfSplitterMetadata: Metadata = createSeoMetadata({
+  title: "Free PDF Splitter | TinyUtility",
+  description:
+    "Split a PDF into multiple PDFs by page range, every N pages, or page breaks, entirely in your browser. Download the results as a ZIP or individually.",
+  path: "/tools/pdf-splitter",
+});
+
+function PdfMetadataCleanerIntro() {
+  return (
+    <ToolIntro>
+      See what standard metadata your PDF carries — Title, Author, Creator, and more — and clear
+      it in your browser before sharing the file. Want to change the file itself first? Try{" "}
+      <Link className={inlineLinkClass} href="/tools/pdf-compressor">
+        PDF Compressor
+      </Link>{" "}
+      or{" "}
+      <Link className={inlineLinkClass} href="/tools/pdf-page-editor">
+        PDF Page Editor
+      </Link>
+      .
+    </ToolIntro>
+  );
+}
+
+const pdfMetadataCleanerUseCases: UseCase[] = [
+  {
+    title: "Before sharing externally",
+    description: "Clear the author name and organization details left in a document's properties.",
+  },
+  {
+    title: "Reused templates",
+    description: "Remove leftover Title, Subject, or Keywords from a document created from an old template.",
+  },
+  {
+    title: "Check what's in a file",
+    description: "See a PDF's metadata fields before deciding whether they need to be cleared.",
+  },
+];
+
+const pdfMetadataCleanerFaq: FAQItem[] = [
+  {
+    question: "Is my PDF uploaded anywhere?",
+    answer: "No. Your PDF is inspected, cleaned, and re-checked entirely in your browser.",
+  },
+  {
+    question: "What metadata does this clear?",
+    answer:
+      "The standard PDF document properties: Title, Author, Subject, Keywords, Creator, Producer, Creation Date, and Modification Date, plus an embedded XMP metadata packet if one is present.",
+  },
+  {
+    question: "Does this remove everything that could identify me in the PDF?",
+    answer:
+      "No. This clears the standard metadata fields listed above. It doesn't guarantee removal of embedded objects, attachments, annotations, hidden layers, or other application-specific data a PDF can contain.",
+  },
+  {
+    question: "How do I know the cleaning actually worked?",
+    answer:
+      "After cleaning, the tool reloads the generated PDF and shows you its actual resulting metadata, rather than just assuming the operation succeeded.",
+  },
+  {
+    question: "Can I clean a password-protected PDF?",
+    answer: "Not yet. Remove the password first, then add the file again.",
+  },
+];
+
+const pdfMetadataCleanerSteps: HowItWorksStep[] = [
+  {
+    title: "Add a PDF",
+    description: "Drag and drop or browse for a PDF file up to 100 MB.",
+  },
+  {
+    title: "Review its metadata",
+    description: "See the standard document fields detected in your PDF.",
+  },
+  {
+    title: "Clean locally",
+    description: "Clear the supported fields in your browser, then download the result.",
+  },
+];
+
+const pdfMetadataCleanerMetadata: Metadata = createSeoMetadata({
+  title: "Free PDF Metadata Cleaner | TinyUtility",
+  description:
+    "View and clear standard PDF metadata — Title, Author, Creator, and more — entirely in your browser. No uploads, and the result is re-checked after cleaning.",
+  path: "/tools/pdf-metadata-cleaner",
 });
 
 function ImageCompressorIntro() {
@@ -832,6 +1083,300 @@ const wordCounterMetadata: Metadata = createSeoMetadata({
   path: "/tools/word-counter",
 });
 
+function FindAndReplaceIntro() {
+  return (
+    <ToolIntro>
+      Find every occurrence of a word or phrase and replace it, with case-sensitive and
+      whole-word options, entirely in your browser. Just need to count words instead? Try the{" "}
+      <Link className={inlineLinkClass} href="/tools/word-counter">
+        Word Counter
+      </Link>
+      .
+    </ToolIntro>
+  );
+}
+
+const findAndReplaceUseCases: UseCase[] = [
+  {
+    title: "Clean up pasted text",
+    description: "Replace smart quotes, stray characters, or inconsistent spacing in pasted content.",
+  },
+  {
+    title: "Update repeated terms",
+    description: "Swap a name, term, or placeholder that appears many times throughout a document.",
+  },
+  {
+    title: "Remove unwanted text",
+    description: "Delete every occurrence of a word or phrase by replacing it with nothing.",
+  },
+];
+
+const findAndReplaceFaq: FAQItem[] = [
+  {
+    question: "Is my text uploaded anywhere?",
+    answer: "No. Text is searched and replaced entirely in your browser.",
+  },
+  {
+    question: "Is Find treated as plain text or a pattern?",
+    answer: "Plain text only. There's no regex mode, so characters like . * and ( are matched literally.",
+  },
+  {
+    question: "Can I remove text instead of replacing it?",
+    answer: "Yes. Leave \"Replace with\" empty and click Replace All to delete every match.",
+  },
+  {
+    question: "How does \"Match whole word\" handle non-English text?",
+    answer:
+      "It treats letters and numbers from any language as word characters, not just English ones. Languages without spaces between words, like Japanese, may not segment the way you expect.",
+  },
+  {
+    question: "Can I undo a replacement?",
+    answer: "Yes. \"Restore Original\" brings back the text from immediately before your last Replace All.",
+  },
+];
+
+const findAndReplaceSteps: HowItWorksStep[] = [
+  {
+    title: "Add your text",
+    description: "Type, paste, or upload a TXT file into the editor.",
+  },
+  {
+    title: "Set Find and Replace",
+    description: "Enter what to find and what to replace it with, and adjust the match options.",
+  },
+  {
+    title: "Replace and download",
+    description: "Click Replace All, then download the result as a TXT file.",
+  },
+];
+
+const findAndReplaceMetadata: Metadata = createSeoMetadata({
+  title: "Free Find & Replace | TinyUtility",
+  description:
+    "Find and replace text online for free, with case-sensitive and whole-word options, entirely in your browser. No uploads.",
+  path: "/tools/find-and-replace",
+});
+
+function TextDiffIntro() {
+  return (
+    <ToolIntro>
+      Paste or upload two versions of a text and instantly see every line that was added,
+      removed, or left unchanged, entirely in your browser. Need to search and replace text
+      instead? Try{" "}
+      <Link className={inlineLinkClass} href="/tools/find-and-replace">
+        Find &amp; Replace
+      </Link>
+      .
+    </ToolIntro>
+  );
+}
+
+const textDiffUseCases: UseCase[] = [
+  {
+    title: "Review edits to a document",
+    description: "Compare an earlier draft against a newer one to see exactly what changed.",
+  },
+  {
+    title: "Check config or data files",
+    description: "Spot line-level changes between two versions of a config, log, or export.",
+  },
+  {
+    title: "Verify a copy-paste or migration",
+    description: "Confirm that copied or migrated text matches the original, line for line.",
+  },
+];
+
+const textDiffFaq: FAQItem[] = [
+  {
+    question: "Is my text uploaded anywhere?",
+    answer: "No. Both texts are compared entirely in your browser, and nothing is sent anywhere.",
+  },
+  {
+    question: "Does it compare whole words or characters, or just lines?",
+    answer:
+      "Lines. Each line is compared as a whole, so a single-character change makes that whole line show as removed and re-added.",
+  },
+  {
+    question: "What if the two texts are identical?",
+    answer: "You'll see a clear \"no differences\" message instead of an empty result.",
+  },
+  {
+    question: "Is there a size limit?",
+    answer:
+      "There's no fixed limit, but extremely large and almost entirely different texts (tens of thousands of lines) may take a few seconds or be blocked to avoid freezing your browser.",
+  },
+  {
+    question: "Can I compare uploaded TXT files?",
+    answer: "Yes. Upload a TXT file into either side, and you can still edit it afterward.",
+  },
+];
+
+const textDiffSteps: HowItWorksStep[] = [
+  {
+    title: "Add Text A and Text B",
+    description: "Type, paste, or upload a TXT file into each side.",
+  },
+  {
+    title: "Click Compare",
+    description: "See a line-by-line diff with a summary of what was added, removed, and unchanged.",
+  },
+  {
+    title: "Copy or download",
+    description: "Copy the diff to your clipboard, or download it as a TXT file.",
+  },
+];
+
+const textDiffMetadata: Metadata = createSeoMetadata({
+  title: "Free Text Diff / Compare Tool | TinyUtility",
+  description:
+    "Compare two blocks of text online for free and see exactly what changed, line by line, entirely in your browser. No uploads.",
+  path: "/tools/text-diff",
+});
+
+function ZipCreatorIntro() {
+  return (
+    <ToolIntro>
+      Select multiple files and package them into one ZIP archive, entirely in your browser.
+      Review what&apos;s included, remove anything you don&apos;t need, and rename the archive
+      before downloading — duplicate filenames are handled automatically so nothing gets
+      overwritten.
+    </ToolIntro>
+  );
+}
+
+const zipCreatorUseCases: UseCase[] = [
+  {
+    title: "Send several files at once",
+    description: "Package a handful of documents or images into one file before emailing them.",
+  },
+  {
+    title: "Back up a small set of files",
+    description: "Bundle related files together into a single archive for storage.",
+  },
+  {
+    title: "Organize files for upload",
+    description: "Combine files into one ZIP for platforms that only accept a single upload.",
+  },
+];
+
+const zipCreatorFaq: FAQItem[] = [
+  {
+    question: "Are my files uploaded anywhere?",
+    answer: "No. Your files are read and packaged into a ZIP entirely in your browser.",
+  },
+  {
+    question: "What happens if two files have the same name?",
+    answer:
+      "The first keeps its name. Later files with the same name are automatically renamed, like \"report (2).pdf\", so nothing is overwritten.",
+  },
+  {
+    question: "Will the ZIP make my files much smaller?",
+    answer:
+      "It depends on the file type. Text-like files often shrink noticeably. Already-compressed formats like JPG, PNG, and MP4 usually won't shrink much.",
+  },
+  {
+    question: "Is there a file size limit?",
+    answer: "Each file must be 500 MB or smaller. Very large combined selections may be limited by your browser's available memory.",
+  },
+];
+
+const zipCreatorSteps: HowItWorksStep[] = [
+  {
+    title: "Add files",
+    description: "Drag and drop or browse for the files you want to package, up to 500 MB each.",
+  },
+  {
+    title: "Review the list",
+    description: "Check what's included and remove anything you don't want in the archive.",
+  },
+  {
+    title: "Create the ZIP",
+    description: "Build the archive locally, rename it, and download the result.",
+  },
+];
+
+const zipCreatorMetadata: Metadata = createSeoMetadata({
+  title: "Free ZIP Creator | TinyUtility",
+  description:
+    "Combine multiple files into one ZIP archive online for free, entirely in your browser. No uploads, with automatic handling of duplicate filenames.",
+  path: "/tools/zip-creator",
+});
+
+function ZipExtractorIntro() {
+  return (
+    <ToolIntro>
+      Open a ZIP archive, see what&apos;s inside, and extract the files you need — entirely in
+      your browser. Need to go the other way and package files together instead? Try{" "}
+      <Link className={inlineLinkClass} href="/tools/zip-creator">
+        ZIP Creator
+      </Link>
+      .
+    </ToolIntro>
+  );
+}
+
+const zipExtractorUseCases: UseCase[] = [
+  {
+    title: "Open a downloaded ZIP",
+    description: "See what's inside an archive before extracting everything from it.",
+  },
+  {
+    title: "Grab just a few files",
+    description: "Extract only the files you need from a large archive instead of all of them.",
+  },
+  {
+    title: "Recover files from an old backup",
+    description: "Open an archive and pull out specific files without extra desktop software.",
+  },
+];
+
+const zipExtractorFaq: FAQItem[] = [
+  {
+    question: "Is my ZIP uploaded anywhere?",
+    answer: "No. Your ZIP is inspected and extracted entirely in your browser.",
+  },
+  {
+    question: "What happens with folders inside the ZIP?",
+    answer: "Folder structure is preserved in file paths and in the extracted ZIP you download.",
+  },
+  {
+    question: "Can I extract a password-protected ZIP?",
+    answer: "Not currently. Password-protected ZIPs aren't supported yet.",
+  },
+  {
+    question: "Is there a limit on archive size?",
+    answer:
+      "Archives are checked against their actual uncompressed size, not just the upload size, and extraction is blocked if that's over 1 GB or the archive has more than 10,000 files — this protects your browser tab from archives designed to expand enormously.",
+  },
+  {
+    question: "How do I download the extracted files?",
+    answer:
+      "Extracted files are packaged into one ZIP by default. You can also download individual files from the results list.",
+  },
+];
+
+const zipExtractorSteps: HowItWorksStep[] = [
+  {
+    title: "Add a ZIP",
+    description: "Drag and drop or browse for a ZIP file up to 500 MB.",
+  },
+  {
+    title: "Review the contents",
+    description: "See every file inside, then select specific files or extract everything.",
+  },
+  {
+    title: "Extract locally",
+    description: "Build the extracted files in your browser, then download them as a ZIP or individually.",
+  },
+];
+
+const zipExtractorMetadata: Metadata = createSeoMetadata({
+  title: "Free ZIP Extractor | TinyUtility",
+  description:
+    "Open and extract ZIP archives online for free, entirely in your browser. Inspect the contents, select files, and download the result. No uploads.",
+  path: "/tools/zip-extractor",
+});
+
 function JsonFormatterIntro() {
   return (
     <ToolIntro>
@@ -906,6 +1451,299 @@ const jsonFormatterMetadata: Metadata = createSeoMetadata({
   description:
     "Format, minify, and validate JSON online for free. A fast private JSON formatter that runs entirely in your browser.",
   path: "/tools/json-formatter",
+});
+
+function UrlEncoderDecoderIntro() {
+  return (
+    <ToolIntro>
+      Encode text into a URI-safe component or decode a percent-encoded string, entirely in your
+      browser. This encodes and decodes URI components — the same behavior as JavaScript&apos;s{" "}
+      <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-sm">encodeURIComponent</code> — not a full-URL parser. Need to
+      compare two versions of text instead? Try{" "}
+      <Link className={inlineLinkClass} href="/tools/text-diff">
+        Text Diff
+      </Link>
+      .
+    </ToolIntro>
+  );
+}
+
+const urlEncoderDecoderUseCases: UseCase[] = [
+  {
+    title: "Build a query string value",
+    description: "Encode a value like a search term or redirect URL before adding it to a query string.",
+  },
+  {
+    title: "Debug a percent-encoded URL",
+    description: "Decode a URL from logs or a browser address bar to read it in plain text.",
+  },
+  {
+    title: "Check what a link actually contains",
+    description: "Decode a shared link to verify its parameters before clicking or sharing it further.",
+  },
+];
+
+const urlEncoderDecoderFaq: FAQItem[] = [
+  {
+    question: "Is my text uploaded anywhere?",
+    answer: "No. Encoding and decoding happen entirely in your browser.",
+  },
+  {
+    question: "Does this encode a whole URL or just part of it?",
+    answer:
+      "It encodes URI components, matching encodeURIComponent(). Delimiter characters like : / ? & = are encoded too, so it's meant for encoding a single value such as a query parameter, not an entire URL.",
+  },
+  {
+    question: "What happens if I decode invalid percent-encoding?",
+    answer:
+      "You'll see a clear error message instead of a crash. Fix the encoded text and click Decode again.",
+  },
+  {
+    question: "Does it handle Unicode and emoji?",
+    answer: "Yes. Unicode text, emoji, and non-Latin scripts are encoded and decoded correctly.",
+  },
+];
+
+const urlEncoderDecoderSteps: HowItWorksStep[] = [
+  {
+    title: "Add your text",
+    description: "Type or paste plain text or a percent-encoded string into the input.",
+  },
+  {
+    title: "Encode or decode",
+    description: "Click Encode to percent-encode it, or Decode to reveal the original text.",
+  },
+  {
+    title: "Copy the result",
+    description: "Copy the output, or click Swap to run the result back through the tool.",
+  },
+];
+
+const urlEncoderDecoderMetadata: Metadata = createSeoMetadata({
+  title: "Free URL Encoder / Decoder | TinyUtility",
+  description:
+    "Encode and decode URI components online for free, matching encodeURIComponent/decodeURIComponent behavior, entirely in your browser. No uploads.",
+  path: "/tools/url-encoder-decoder",
+});
+
+function UuidGeneratorIntro() {
+  return (
+    <ToolIntro>
+      Generate standards-compliant, random UUID v4 values using your browser&apos;s secure random
+      number generator — entirely on your device. Need a random password instead? Try the{" "}
+      <Link className={inlineLinkClass} href="/tools/password-generator">
+        Password Generator
+      </Link>
+      .
+    </ToolIntro>
+  );
+}
+
+const uuidGeneratorUseCases: UseCase[] = [
+  {
+    title: "Seed test data",
+    description: "Generate unique identifiers for test fixtures, mock records, or sample data.",
+  },
+  {
+    title: "Create database keys",
+    description: "Get a batch of UUIDs to use as primary keys or reference IDs during development.",
+  },
+  {
+    title: "Tag resources",
+    description: "Generate a unique ID for a file, request, session, or other tracked resource.",
+  },
+];
+
+const uuidGeneratorFaq: FAQItem[] = [
+  {
+    question: "Are these UUIDs uploaded anywhere?",
+    answer: "No. UUIDs are generated and stay entirely in your browser.",
+  },
+  {
+    question: "What UUID version does this generate?",
+    answer: "UUID version 4 (random), generated using your browser's cryptographically secure random number generator.",
+  },
+  {
+    question: "How many UUIDs can I generate at once?",
+    answer: "Up to 100 per generation. Click Generate again for more.",
+  },
+  {
+    question: "Are the UUIDs guaranteed to be unique?",
+    answer:
+      "Each UUID v4 is generated from 122 random bits, making collisions astronomically unlikely — the same guarantee any standard UUID v4 generator relies on.",
+  },
+];
+
+const uuidGeneratorSteps: HowItWorksStep[] = [
+  {
+    title: "Choose a quantity",
+    description: "Enter how many UUIDs you need, from 1 to 100.",
+  },
+  {
+    title: "Generate",
+    description: "Click Generate to create random, standards-compliant UUID v4 values.",
+  },
+  {
+    title: "Copy what you need",
+    description: "Copy an individual UUID, or copy the entire list at once.",
+  },
+];
+
+const uuidGeneratorMetadata: Metadata = createSeoMetadata({
+  title: "UUID Generator | Generate Random UUID v4 | TinyUtility",
+  description:
+    "Generate random UUID v4 values online for free, securely in your browser using crypto.randomUUID(). Copy results — nothing is sent to a server.",
+  path: "/tools/uuid-generator",
+});
+
+function TimestampConverterIntro() {
+  return (
+    <ToolIntro>
+      Convert Unix timestamps to human-readable UTC dates, or dates back to timestamps, entirely
+      in your browser. Working with JSON from an API? Pair this with the{" "}
+      <Link className={inlineLinkClass} href="/tools/json-formatter">
+        JSON Formatter
+      </Link>
+      .
+    </ToolIntro>
+  );
+}
+
+const timestampConverterUseCases: UseCase[] = [
+  {
+    title: "Debug an API response",
+    description: "Turn a raw Unix timestamp from a log or API payload into a readable date.",
+  },
+  {
+    title: "Build a test fixture",
+    description: "Get the exact timestamp for a specific UTC date and time for test data.",
+  },
+  {
+    title: "Compare timestamps across formats",
+    description: "Check whether a seconds or milliseconds timestamp matches the date you expect.",
+  },
+];
+
+const timestampConverterFaq: FAQItem[] = [
+  {
+    question: "Is my data uploaded anywhere?",
+    answer: "No. Conversion happens entirely in your browser using native JavaScript Date logic.",
+  },
+  {
+    question: "Are timestamps in seconds or milliseconds?",
+    answer:
+      "Whichever you choose with the unit selector. It applies to both the timestamp input and the timestamp result, so there's no guessing from digit count.",
+  },
+  {
+    question: "What timezone is used?",
+    answer:
+      "Results are shown in UTC first and labeled clearly, since that's an unambiguous, deterministic result. Your local time is also shown, explicitly labeled with its UTC offset.",
+  },
+  {
+    question: "What date formats can I enter?",
+    answer:
+      "YYYY-MM-DD HH:mm:ss (interpreted as UTC), or ISO 8601 with an explicit timezone, like 2026-01-01T00:00:00Z or with a +/-HH:mm offset.",
+  },
+  {
+    question: "What happens with an invalid or out-of-range date?",
+    answer: "You'll see a clear error message instead of an incorrect result or a crash.",
+  },
+];
+
+const timestampConverterSteps: HowItWorksStep[] = [
+  {
+    title: "Choose a unit",
+    description: "Pick Seconds or Milliseconds — it applies to both conversion directions.",
+  },
+  {
+    title: "Convert a timestamp or a date",
+    description: "Enter a Unix timestamp to get its date, or a UTC/ISO 8601 date to get its timestamp.",
+  },
+  {
+    title: "Copy the result",
+    description: "Copy the UTC date, ISO 8601 string, local time, or timestamp you need.",
+  },
+];
+
+const timestampConverterMetadata: Metadata = createSeoMetadata({
+  title: "Timestamp Converter | Unix Timestamp to Date | TinyUtility",
+  description:
+    "Convert Unix timestamps to UTC dates and back, in seconds or milliseconds, entirely in your browser. No uploads, no server processing.",
+  path: "/tools/timestamp-converter",
+});
+
+function RegexTesterIntro() {
+  return (
+    <ToolIntro>
+      Test a JavaScript regular expression against sample text — see matches, capture groups, and
+      match positions — entirely in your browser, using your browser&apos;s native RegExp engine.
+      Need to actually replace matched text? Try{" "}
+      <Link className={inlineLinkClass} href="/tools/find-and-replace">
+        Find &amp; Replace
+      </Link>
+      .
+    </ToolIntro>
+  );
+}
+
+const regexTesterUseCases: UseCase[] = [
+  {
+    title: "Debug a pattern",
+    description: "Check why a regular expression isn't matching the text you expect.",
+  },
+  {
+    title: "Validate input formats",
+    description: "Test a pattern for emails, IDs, or codes against a handful of real examples.",
+  },
+  {
+    title: "Extract structured data",
+    description: "Check capture groups pull out the right pieces of matched text.",
+  },
+];
+
+const regexTesterFaq: FAQItem[] = [
+  {
+    question: "Is my pattern or text uploaded anywhere?",
+    answer: "No. Matching runs entirely in your browser using the native JavaScript RegExp engine.",
+  },
+  {
+    question: "Do I need to include slashes, like /pattern/g?",
+    answer: "No. Enter just the raw pattern, like \\bhello\\b, and choose flags separately using the checkboxes.",
+  },
+  {
+    question: "Why does it only show one match?",
+    answer: "The g (global) flag is off. Turn it on to find every match instead of just the first.",
+  },
+  {
+    question: "Does this support every regex flavor?",
+    answer: "It uses your browser's native JavaScript RegExp engine, so it follows JavaScript regex syntax and semantics rather than PCRE, Python, or other flavors.",
+  },
+  {
+    question: "What happens with an invalid pattern?",
+    answer: "You'll see a clear error message instead of a crash. Fix the pattern and test again.",
+  },
+];
+
+const regexTesterSteps: HowItWorksStep[] = [
+  {
+    title: "Enter a pattern and flags",
+    description: "Type the raw regex pattern and choose flags like g (global) or i (ignore case).",
+  },
+  {
+    title: "Add test text",
+    description: "Paste or type the text you want to check the pattern against.",
+  },
+  {
+    title: "Test and review matches",
+    description: "See match count, matched text, positions, and capture groups.",
+  },
+];
+
+const regexTesterMetadata: Metadata = createSeoMetadata({
+  title: "Regex Tester | Test Regular Expressions Online | TinyUtility",
+  description:
+    "Test JavaScript regular expressions online for free — flags, matches, and capture groups — entirely in your browser. No uploads.",
+  path: "/tools/regex-tester",
 });
 
 const passwordGeneratorMetadata: Metadata = createSeoMetadata({
@@ -1001,6 +1839,18 @@ export async function generateMetadata({ params }: ToolPageProps) {
     return pdfPageExtractorMetadata;
   }
 
+  if (slug === "pdf-page-editor") {
+    return pdfPageEditorMetadata;
+  }
+
+  if (slug === "pdf-splitter") {
+    return pdfSplitterMetadata;
+  }
+
+  if (slug === "pdf-metadata-cleaner") {
+    return pdfMetadataCleanerMetadata;
+  }
+
   if (slug === "qr-code-generator") {
     return qrCodeGeneratorMetadata;
   }
@@ -1009,8 +1859,40 @@ export async function generateMetadata({ params }: ToolPageProps) {
     return wordCounterMetadata;
   }
 
+  if (slug === "find-and-replace") {
+    return findAndReplaceMetadata;
+  }
+
+  if (slug === "text-diff") {
+    return textDiffMetadata;
+  }
+
+  if (slug === "zip-creator") {
+    return zipCreatorMetadata;
+  }
+
+  if (slug === "zip-extractor") {
+    return zipExtractorMetadata;
+  }
+
   if (slug === "json-formatter") {
     return jsonFormatterMetadata;
+  }
+
+  if (slug === "url-encoder-decoder") {
+    return urlEncoderDecoderMetadata;
+  }
+
+  if (slug === "uuid-generator") {
+    return uuidGeneratorMetadata;
+  }
+
+  if (slug === "timestamp-converter") {
+    return timestampConverterMetadata;
+  }
+
+  if (slug === "regex-tester") {
+    return regexTesterMetadata;
   }
 
   if (slug === "password-generator") {
@@ -1047,6 +1929,12 @@ export default async function ToolPage({ params }: ToolPageProps) {
             ? pdfCompressorFaq
           : slug === "pdf-page-extractor"
             ? pdfPageExtractorFaq
+          : slug === "pdf-page-editor"
+            ? pdfPageEditorFaq
+          : slug === "pdf-splitter"
+            ? pdfSplitterFaq
+          : slug === "pdf-metadata-cleaner"
+            ? pdfMetadataCleanerFaq
           : slug === "image-compressor"
             ? imageCompressorFaq
             : slug === "image-converter"
@@ -1059,8 +1947,24 @@ export default async function ToolPage({ params }: ToolPageProps) {
                 ? qrCodeGeneratorFaq
                 : slug === "word-counter"
                   ? wordCounterFaq
+                : slug === "find-and-replace"
+                  ? findAndReplaceFaq
+                : slug === "text-diff"
+                  ? textDiffFaq
+                : slug === "zip-creator"
+                  ? zipCreatorFaq
+                : slug === "zip-extractor"
+                  ? zipExtractorFaq
                   : slug === "json-formatter"
                     ? jsonFormatterFaq
+                    : slug === "url-encoder-decoder"
+                      ? urlEncoderDecoderFaq
+                      : slug === "uuid-generator"
+                        ? uuidGeneratorFaq
+                        : slug === "timestamp-converter"
+                          ? timestampConverterFaq
+                          : slug === "regex-tester"
+                            ? regexTesterFaq
                   : [];
 
   const categorySlug = toolCategories.find((category) => category.title === tool.category)?.slug;
@@ -1077,13 +1981,24 @@ export default async function ToolPage({ params }: ToolPageProps) {
   const isPdfMerger = slug === "pdf-merger";
   const isPdfCompressor = slug === "pdf-compressor";
   const isPdfPageExtractor = slug === "pdf-page-extractor";
+  const isPdfPageEditor = slug === "pdf-page-editor";
+  const isPdfSplitter = slug === "pdf-splitter";
+  const isPdfMetadataCleaner = slug === "pdf-metadata-cleaner";
   const isImageCompressor = slug === "image-compressor";
   const isImageConverter = slug === "image-converter";
   const isImageResizer = slug === "image-resizer";
   const isImageCropper = slug === "image-cropper";
   const isQrCodeGenerator = slug === "qr-code-generator";
   const isWordCounter = slug === "word-counter";
+  const isFindAndReplace = slug === "find-and-replace";
+  const isTextDiff = slug === "text-diff";
+  const isZipCreator = slug === "zip-creator";
+  const isZipExtractor = slug === "zip-extractor";
   const isJsonFormatter = slug === "json-formatter";
+  const isUrlEncoderDecoder = slug === "url-encoder-decoder";
+  const isUuidGenerator = slug === "uuid-generator";
+  const isTimestampConverter = slug === "timestamp-converter";
+  const isRegexTester = slug === "regex-tester";
 
   return (
     <ToolLayout>
@@ -1096,13 +2011,24 @@ export default async function ToolPage({ params }: ToolPageProps) {
             isPdfMerger ||
             isPdfCompressor ||
             isPdfPageExtractor ||
+            isPdfPageEditor ||
+            isPdfSplitter ||
+            isPdfMetadataCleaner ||
             isImageCompressor ||
             isImageConverter ||
             isImageResizer ||
             isImageCropper ||
             isQrCodeGenerator ||
             isWordCounter ||
-            isJsonFormatter
+            isFindAndReplace ||
+            isTextDiff ||
+            isZipCreator ||
+            isZipExtractor ||
+            isJsonFormatter ||
+            isUrlEncoderDecoder ||
+            isUuidGenerator ||
+            isTimestampConverter ||
+            isRegexTester
               ? null
               : undefined
           }
@@ -1146,6 +2072,30 @@ export default async function ToolPage({ params }: ToolPageProps) {
             <PdfPageExtractorTool />
             <HowItWorks steps={pdfPageExtractorSteps} title="Private PDF page extraction in your browser" />
             <UseCases items={pdfPageExtractorUseCases} />
+          </>
+        ) : null}
+        {isPdfPageEditor ? (
+          <>
+            <PdfPageEditorIntro />
+            <PdfPageEditorTool />
+            <HowItWorks steps={pdfPageEditorSteps} title="Private PDF page editing in your browser" />
+            <UseCases items={pdfPageEditorUseCases} />
+          </>
+        ) : null}
+        {isPdfSplitter ? (
+          <>
+            <PdfSplitterIntro />
+            <PdfSplitterTool />
+            <HowItWorks steps={pdfSplitterSteps} title="Private PDF splitting in your browser" />
+            <UseCases items={pdfSplitterUseCases} />
+          </>
+        ) : null}
+        {isPdfMetadataCleaner ? (
+          <>
+            <PdfMetadataCleanerIntro />
+            <PdfMetadataCleanerTool />
+            <HowItWorks steps={pdfMetadataCleanerSteps} title="Private PDF metadata cleaning in your browser" />
+            <UseCases items={pdfMetadataCleanerUseCases} />
           </>
         ) : null}
         {isImageCompressor ? (
@@ -1196,12 +2146,76 @@ export default async function ToolPage({ params }: ToolPageProps) {
             <UseCases items={wordCounterUseCases} />
           </>
         ) : null}
+        {isFindAndReplace ? (
+          <>
+            <FindAndReplaceIntro />
+            <FindAndReplaceTool />
+            <HowItWorks steps={findAndReplaceSteps} title="Private find and replace in your browser" />
+            <UseCases items={findAndReplaceUseCases} />
+          </>
+        ) : null}
+        {isTextDiff ? (
+          <>
+            <TextDiffIntro />
+            <TextDiffTool />
+            <HowItWorks steps={textDiffSteps} title="Private text comparison in your browser" />
+            <UseCases items={textDiffUseCases} />
+          </>
+        ) : null}
+        {isZipCreator ? (
+          <>
+            <ZipCreatorIntro />
+            <ZipCreatorTool />
+            <HowItWorks steps={zipCreatorSteps} title="Private ZIP creation in your browser" />
+            <UseCases items={zipCreatorUseCases} />
+          </>
+        ) : null}
+        {isZipExtractor ? (
+          <>
+            <ZipExtractorIntro />
+            <ZipExtractorTool />
+            <HowItWorks steps={zipExtractorSteps} title="Private ZIP extraction in your browser" />
+            <UseCases items={zipExtractorUseCases} />
+          </>
+        ) : null}
         {isJsonFormatter ? (
           <>
             <JsonFormatterIntro />
             <JsonFormatterTool />
             <HowItWorks steps={jsonFormatterSteps} title="Private JSON formatting in your browser" />
             <UseCases items={jsonFormatterUseCases} />
+          </>
+        ) : null}
+        {isUrlEncoderDecoder ? (
+          <>
+            <UrlEncoderDecoderIntro />
+            <UrlEncoderDecoderTool />
+            <HowItWorks steps={urlEncoderDecoderSteps} title="Private URL encoding and decoding in your browser" />
+            <UseCases items={urlEncoderDecoderUseCases} />
+          </>
+        ) : null}
+        {isUuidGenerator ? (
+          <>
+            <UuidGeneratorIntro />
+            <UuidGeneratorTool />
+            <HowItWorks steps={uuidGeneratorSteps} title="Private UUID generation in your browser" />
+            <UseCases items={uuidGeneratorUseCases} />
+          </>
+        ) : null}
+        {isTimestampConverter ? (
+          <>
+            <TimestampConverterIntro />
+            <TimestampConverterTool />
+            <HowItWorks steps={timestampConverterSteps} title="Private timestamp conversion in your browser" />
+            <UseCases items={timestampConverterUseCases} />
+          </>
+        ) : null}
+        {isRegexTester ? (
+          <>
+            <RegexTesterIntro />
+            <RegexTesterTool />
+            <HowItWorks steps={regexTesterSteps} title="Private regex testing in your browser" />
+            <UseCases items={regexTesterUseCases} />
           </>
         ) : null}
         <FAQSection items={faqItems} />

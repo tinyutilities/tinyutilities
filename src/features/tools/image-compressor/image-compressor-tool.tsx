@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  buildDownloadFilename,
   ErrorCard,
   EstimatePanel,
+  FilenameField,
   formatBytes,
   ProcessingState,
   ProgressIndicator,
@@ -12,6 +14,8 @@ import {
   UploadCard,
 } from "@/components/upload";
 import type { UploadPhase } from "@/components/upload";
+
+const defaultZipFilenameBase = "TinyUtility-Compressed";
 
 type UploadedImage = {
   id: string;
@@ -315,6 +319,7 @@ export function ImageCompressorTool() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [progress, setProgress] = useState<number | undefined>(undefined);
   const [justDownloaded, setJustDownloaded] = useState(false);
+  const [zipFilenameBase, setZipFilenameBase] = useState(defaultZipFilenameBase);
 
   const totalSize = useMemo(
     () => images.reduce((total, image) => total + image.file.size, 0),
@@ -428,6 +433,7 @@ export function ImageCompressorTool() {
     setPhase("idle");
     setErrorMessage(null);
     setJustDownloaded(false);
+    setZipFilenameBase(defaultZipFilenameBase);
   };
 
   const compressImages = async () => {
@@ -497,7 +503,7 @@ export function ImageCompressorTool() {
     try {
       const zipBlob = await createZipArchive(results);
 
-      downloadBlob(zipBlob, "tinyutility-compressed-images.zip");
+      downloadBlob(zipBlob, buildDownloadFilename(zipFilenameBase, "zip", defaultZipFilenameBase));
       markDownloaded();
     } catch {
       setPhase("error");
@@ -516,6 +522,11 @@ export function ImageCompressorTool() {
 
       {showSuccessHero ? (
         <SuccessCard
+          beforeActions={
+            results.length > 1 ? (
+              <FilenameField extension="zip" onChange={setZipFilenameBase} value={zipFilenameBase} />
+            ) : undefined
+          }
           downloadLabel={results.length > 1 ? "Download All (ZIP)" : "Download"}
           justDownloaded={justDownloaded}
           onDownload={results.length > 1 ? downloadAll : () => {

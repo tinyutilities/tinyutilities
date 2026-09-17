@@ -5,8 +5,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 // route's JS bundle. The runtime value is loaded lazily via `loadPdfLib()` below.
 import type { PDFRef } from "pdf-lib";
 import {
+  buildDownloadFilename,
   ErrorCard,
   EstimatePanel,
+  FilenameField,
   formatBytes,
   ProcessingState,
   ProgressIndicator,
@@ -15,6 +17,8 @@ import {
   UploadCard,
 } from "@/components/upload";
 import type { StatValue, UploadPhase } from "@/components/upload";
+
+const defaultFilenameBase = "TinyUtility-Compressed";
 
 type CompressionLevel = "light" | "medium" | "strong";
 
@@ -380,6 +384,7 @@ export function PdfCompressorTool() {
   const [progress, setProgress] = useState<number | undefined>(undefined);
   const [result, setResult] = useState<CompressionResult | null>(null);
   const [justDownloaded, setJustDownloaded] = useState(false);
+  const [filenameBase, setFilenameBase] = useState(defaultFilenameBase);
 
   useEffect(() => {
     return () => {
@@ -454,6 +459,7 @@ export function PdfCompressorTool() {
     setProgress(undefined);
     setPhase("idle");
     setJustDownloaded(false);
+    setFilenameBase(defaultFilenameBase);
   };
 
   const runCompression = async () => {
@@ -483,9 +489,8 @@ export function PdfCompressorTool() {
   };
 
   const downloadResult = () => {
-    if (!result || !pdf) return;
-    const baseName = pdf.file.name.replace(/\.pdf$/i, "") || "document";
-    downloadBlob(result.blob, `${baseName}_compressed_tinyutility.pdf`);
+    if (!result) return;
+    downloadBlob(result.blob, buildDownloadFilename(filenameBase, "pdf", defaultFilenameBase));
     markDownloaded();
   };
 
@@ -512,6 +517,7 @@ export function PdfCompressorTool() {
 
       {showSuccessHero ? (
         <SuccessCard
+          beforeActions={<FilenameField extension="pdf" onChange={setFilenameBase} value={filenameBase} />}
           downloadLabel="Download PDF"
           heroStat={{ label: "Saved", value: `${reduction}%` }}
           justDownloaded={justDownloaded}

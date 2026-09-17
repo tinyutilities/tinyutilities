@@ -194,3 +194,123 @@ export function ExtractPagesIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function RotatePagesIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M7 3h7v7H7z" />
+      <path d="M17.5 9a6 6 0 1 1-2-4.5" />
+      <path d="M17.5 3.5v3.5H14" />
+    </svg>
+  );
+}
+
+export function SplitPagesIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 3h5v8H6z" />
+      <path d="M13 13h5v8h-5z" />
+      <path d="M4 11h16" strokeDasharray="2 2" />
+    </svg>
+  );
+}
+
+export function CleanPdfIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 3h7l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+      <path d="M13 3v4h4" />
+      <path d="m17.5 13.5.7 1.5 1.5.7-1.5.7-.7 1.5-.7-1.5-1.5-.7 1.5-.7Z" />
+    </svg>
+  );
+}
+
+export function ArchiveIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 4h16v4H4z" />
+      <path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" />
+      <path d="M10 12h4" />
+    </svg>
+  );
+}
+
+export function ExtractArchiveIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 4h16v4H4z" />
+      <path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" />
+      <path d="M12 12v6" />
+      <path d="m9 15 3 3 3-3" />
+    </svg>
+  );
+}
+
+export function FindReplaceIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="9" cy="9" r="5" />
+      <path d="m13 13 3 3" />
+      <path d="M14 19h7" />
+      <path d="m18 16 3 3-3 3" />
+    </svg>
+  );
+}
+
+export function CompareIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9 4v16" />
+      <path d="M15 4v16" />
+      <path d="M4 8h5" />
+      <path d="M15 16h5" />
+      <path d="m6 6-2 2 2 2" />
+      <path d="m18 14 2 2-2 2" />
+    </svg>
+  );
+}
+
+export function LinkEncodeIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M10 14a4 4 0 0 0 5.7.3L18 12a4 4 0 0 0-5.7-5.7L11 7.6" />
+      <path d="M14 10a4 4 0 0 0-5.7-.3L6 12a4 4 0 0 0 5.7 5.7L13 16.4" />
+      <path d="M4 20h3l1.5-4" />
+      <path d="M20 4h-3l-1.5 4" />
+    </svg>
+  );
+}
+
+export function IdTagIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3 7a2 2 0 0 1 2-2h9l7 7-7 7H5a2 2 0 0 1-2-2Z" />
+      <circle cx="9" cy="12" r="1.5" />
+      <path d="M13 9v6" />
+      <path d="M16 9v6" />
+    </svg>
+  );
+}
+
+export function TimeConvertIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="10" cy="12" r="7" />
+      <path d="M10 8v4l2.5 2.5" />
+      <path d="M19 5v4h-4" />
+      <path d="M19 9a7 7 0 0 0-6-4" />
+    </svg>
+  );
+}
+
+export function RegexIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M7 4H4v16h3" />
+      <path d="M17 4h3v16h-3" />
+      <path d="M12 8v8" />
+      <path d="m9 10 6 4" />
+      <path d="m15 10-6 4" />
+    </svg>
+  );
+}
