@@ -20,6 +20,9 @@ const eslintConfig = [
       // Vendored, pre-minified pdf.js worker script copied verbatim from pdfjs-dist —
       // not source we maintain, so it shouldn't be linted.
       "public/pdf.worker.min.mjs",
+      // Vendored, pre-minified Tesseract.js worker script and WASM core loaders, copied
+      // verbatim from tesseract.js/tesseract.js-core — not source we maintain.
+      "public/tesseract/**",
     ],
   },
 ];

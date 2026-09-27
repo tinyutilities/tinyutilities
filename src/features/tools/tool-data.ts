@@ -7,6 +7,10 @@ export type ToolCategory = {
 
 export type ToolIconName =
   | "archive"
+  | "audioJoin"
+  | "audioSpeed"
+  | "audioTrim"
+  | "audioVolume"
   | "clean"
   | "code"
   | "compare"
@@ -16,6 +20,7 @@ export type ToolIconName =
   | "findReplace"
   | "idTag"
   | "image"
+  | "imageToText"
   | "linkEncode"
   | "merge"
   | "pdf"
@@ -43,6 +48,12 @@ export type Tool = {
 
 export const toolCategories: ToolCategory[] = [
   {
+    title: "Audio Tools",
+    description: "Edit and export audio clips directly in your browser.",
+    slug: "audio",
+    toolCount: 4,
+  },
+  {
     title: "Image Tools",
     description: "Compress, convert, and prepare images for the web.",
     slug: "image",
@@ -64,7 +75,7 @@ export const toolCategories: ToolCategory[] = [
     title: "Text Tools",
     description: "Count, clean, and transform everyday text.",
     slug: "text",
-    toolCount: 3,
+    toolCount: 4,
   },
   {
     title: "File Tools",
@@ -75,6 +86,42 @@ export const toolCategories: ToolCategory[] = [
 ];
 
 export const tools: Tool[] = [
+  {
+    title: "Audio Trimmer",
+    description: "Trim an audio clip to an exact start and end point, entirely in your browser.",
+    blurb: "Trim audio clips",
+    slug: "audio-trimmer",
+    category: "Audio Tools",
+    icon: "audioTrim",
+    keywords: ["trim audio", "cut audio", "audio clip", "audio editor", "wav trimmer", "mp3 trimmer"],
+  },
+  {
+    title: "Audio Joiner",
+    description: "Combine multiple audio clips into one file, in the order you choose.",
+    blurb: "Join audio clips",
+    slug: "audio-joiner",
+    category: "Audio Tools",
+    icon: "audioJoin",
+    keywords: ["join audio", "merge audio", "combine audio", "concatenate audio", "audio merger", "wav joiner"],
+  },
+  {
+    title: "Audio Speed Changer",
+    description: "Speed up or slow down an audio clip and export the result as a new file.",
+    blurb: "Change audio speed",
+    slug: "audio-speed-changer",
+    category: "Audio Tools",
+    icon: "audioSpeed",
+    keywords: ["audio speed", "change speed", "speed up audio", "slow down audio", "playback rate", "pitch change", "wav speed changer"],
+  },
+  {
+    title: "Audio Volume Changer",
+    description: "Increase or decrease the volume of an audio clip and export the result as a new file.",
+    blurb: "Change audio volume",
+    slug: "audio-volume-changer",
+    category: "Audio Tools",
+    icon: "audioVolume",
+    keywords: ["audio volume", "change volume", "increase volume", "decrease volume", "gain", "decibel", "louder audio", "quieter audio", "wav volume changer"],
+  },
   {
     title: "Image Compressor",
     description: "Reduce image file size while preserving quality.",
@@ -236,6 +283,15 @@ export const tools: Tool[] = [
     category: "Developer Tools",
     icon: "regex",
     keywords: ["regex", "regular expression", "regex tester", "pattern matching", "regexp"],
+  },
+  {
+    title: "Image to Text",
+    description: "Extract editable text from images directly in your browser.",
+    blurb: "Extract text from images",
+    slug: "image-to-text",
+    category: "Text Tools",
+    icon: "imageToText",
+    keywords: ["ocr", "image to text", "extract text from image", "photo to text", "scan to text"],
   },
   {
     title: "Word Counter",

@@ -314,3 +314,69 @@ export function RegexIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function ImageToTextIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <rect height="14" rx="1.5" width="11" x="2" y="5" />
+      <path d="m4 15 2.5-3 2 2L11 11l2 2" />
+      <path d="M17 8h5" />
+      <path d="M17 12h5" />
+      <path d="M17 16h3" />
+    </svg>
+  );
+}
+
+export function AudioTrimIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 3v6" />
+      <path d="M6 3H4" />
+      <path d="M6 9H4" />
+      <path d="M18 3v6" />
+      <path d="M18 3h2" />
+      <path d="M18 9h2" />
+      <path d="M8 14v4" />
+      <path d="M11 12v8" />
+      <path d="M14 13v6" />
+      <path d="M17 15v2" />
+    </svg>
+  );
+}
+
+export function AudioJoinIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3 9v6" />
+      <path d="M6 6v12" />
+      <path d="M9 10v4" />
+      <path d="m13 9 4 3-4 3" />
+      <path d="M18 10v4" />
+      <path d="M21 9v6" />
+    </svg>
+  );
+}
+
+export function AudioSpeedIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 21a9 9 0 1 0-9-9" />
+      <path d="M12 21a9 9 0 0 0 9-9" strokeOpacity="0.4" />
+      <path d="M12 12 16 8" />
+      <path d="M5 8v0" />
+      <path d="M19 8v0" />
+      <path d="M3 12h1" />
+      <path d="M20 12h1" />
+    </svg>
+  );
+}
+
+export function AudioVolumeIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 10v4h4l5 4V6l-5 4H4Z" />
+      <path d="M16.5 9a4 4 0 0 1 0 6" />
+      <path d="M19 6.5a8 8 0 0 1 0 11" strokeOpacity="0.5" />
+    </svg>
+  );
+}

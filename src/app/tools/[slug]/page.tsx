@@ -22,6 +22,11 @@ import { UrlEncoderDecoderTool } from "@/features/tools/url-encoder-decoder/url-
 import { UuidGeneratorTool } from "@/features/tools/uuid-generator/uuid-generator-tool";
 import { TimestampConverterTool } from "@/features/tools/timestamp-converter/timestamp-converter-tool";
 import { RegexTesterTool } from "@/features/tools/regex-tester/regex-tester-tool";
+import { ImageToTextTool } from "@/features/tools/image-to-text/image-to-text-tool";
+import { AudioTrimmerTool } from "@/features/tools/audio-trimmer/audio-trimmer-tool";
+import { AudioJoinerTool } from "@/features/tools/audio-joiner/audio-joiner-tool";
+import { AudioSpeedChangerTool } from "@/features/tools/audio-speed-changer/audio-speed-changer-tool";
+import { AudioVolumeChangerTool } from "@/features/tools/audio-volume-changer/audio-volume-changer-tool";
 import { PasswordGeneratorTool } from "@/features/tools/password-generator/password-generator-tool";
 import { PdfCompressorTool } from "@/features/tools/pdf-compressor/pdf-compressor-tool";
 import { PdfMergerTool } from "@/features/tools/pdf-merger/pdf-merger-tool";
@@ -1746,6 +1751,380 @@ const regexTesterMetadata: Metadata = createSeoMetadata({
   path: "/tools/regex-tester",
 });
 
+function ImageToTextIntro() {
+  return (
+    <ToolIntro>
+      Extract editable text from a photo, screenshot, or scan — entirely in your browser, using
+      on-device OCR. Review and correct the result before copying or downloading it. Need to
+      compare two versions of text instead? Try{" "}
+      <Link className={inlineLinkClass} href="/tools/text-diff">
+        Text Diff
+      </Link>
+      .
+    </ToolIntro>
+  );
+}
+
+const imageToTextUseCases: UseCase[] = [
+  {
+    title: "Digitize a printed document",
+    description: "Turn a photo of a page into editable, searchable text.",
+  },
+  {
+    title: "Pull text from a screenshot",
+    description: "Grab a quote, code snippet, or message from a screenshot without retyping it.",
+  },
+  {
+    title: "Extract text from a scanned form",
+    description: "Get the text out of a scanned form or receipt so you can edit or reuse it.",
+  },
+];
+
+const imageToTextFaq: FAQItem[] = [
+  {
+    question: "Is my image uploaded anywhere?",
+    answer: "No. Text extraction (OCR) runs entirely in your browser, using an on-device OCR engine.",
+  },
+  {
+    question: "Why didn't it detect any text?",
+    answer:
+      "OCR works best on clear, higher-contrast text. Try a sharper image, better lighting, or a larger crop of just the text.",
+  },
+  {
+    question: "Can I fix mistakes in the extracted text?",
+    answer: "Yes. The result appears in an editable text box, so you can correct anything before copying or downloading it.",
+  },
+  {
+    question: "What file formats can I upload?",
+    answer: "JPG, PNG, and WEBP images, up to 20 MB.",
+  },
+  {
+    question: "What's the difference between the TXT and Word downloads?",
+    answer: "Both contain the same edited text. TXT is a plain text file; the Word option is a real .docx file that opens in Word, LibreOffice, or Google Docs.",
+  },
+];
+
+const imageToTextSteps: HowItWorksStep[] = [
+  {
+    title: "Upload an image",
+    description: "Choose or drop a JPG, PNG, or WEBP image containing text.",
+  },
+  {
+    title: "Extract the text",
+    description: "OCR runs locally in your browser and detects the text in the image.",
+  },
+  {
+    title: "Edit and export",
+    description: "Correct any mistakes, then copy the text or download it as TXT or Word.",
+  },
+];
+
+const imageToTextMetadata: Metadata = createSeoMetadata({
+  title: "Image to Text – Free Online OCR | TinyUtility",
+  description:
+    "Extract editable text from images online for free, entirely in your browser. On-device OCR, no uploads — copy the result or download it as TXT or Word.",
+  path: "/tools/image-to-text",
+});
+
+function AudioTrimmerIntro() {
+  return (
+    <ToolIntro>
+      Upload an audio clip, see its real waveform, and trim it to an exact start and end point —
+      entirely in your browser. Preview your selection before exporting a clean WAV file.
+    </ToolIntro>
+  );
+}
+
+const audioTrimmerUseCases: UseCase[] = [
+  {
+    title: "Cut a voice memo down to size",
+    description: "Trim the silence or dead air from the start or end of a recording.",
+  },
+  {
+    title: "Grab a short clip from a longer file",
+    description: "Pull out just the moment you need from a podcast, lecture, or interview.",
+  },
+  {
+    title: "Prepare a sound for another project",
+    description: "Export an exact-length WAV clip ready to drop into a video or presentation.",
+  },
+];
+
+const audioTrimmerFaq: FAQItem[] = [
+  {
+    question: "Is my audio uploaded anywhere?",
+    answer: "No. Decoding, waveform rendering, playback, and export all happen locally in your browser.",
+  },
+  {
+    question: "What audio formats can I upload?",
+    answer:
+      "Whatever your browser's built-in audio decoder supports — most browsers handle MP3, WAV, M4A, and OGG. If a file can't be decoded, you'll see a clear message rather than a silent failure.",
+  },
+  {
+    question: "What format is the trimmed file?",
+    answer: "A standard 16-bit PCM WAV file, which preserves the original sample rate and channel count and opens everywhere.",
+  },
+  {
+    question: "Is there a file size limit?",
+    answer: "Yes — very large files can use more memory than a browser tab can safely handle once decoded, so extremely large uploads are rejected with a clear message.",
+  },
+  {
+    question: "Can I preview just my selection before exporting?",
+    answer: "Yes. Preview Selection plays only the audio between your chosen start and end points.",
+  },
+];
+
+const audioTrimmerSteps: HowItWorksStep[] = [
+  {
+    title: "Upload an audio file",
+    description: "Choose or drop an audio file your browser can decode.",
+  },
+  {
+    title: "Choose a start and end point",
+    description: "Drag the waveform handles or type exact times, then preview your selection.",
+  },
+  {
+    title: "Trim and download",
+    description: "Export the selection as a WAV file and download it with a custom filename.",
+  },
+];
+
+const audioTrimmerMetadata: Metadata = createSeoMetadata({
+  title: "Audio Trimmer | Trim Audio Online | TinyUtility",
+  description:
+    "Trim an audio clip to an exact start and end point online for free, entirely in your browser. See a real waveform, preview your selection, and export a WAV file.",
+  path: "/tools/audio-trimmer",
+});
+
+function AudioJoinerIntro() {
+  return (
+    <ToolIntro>
+      Upload several audio clips, arrange them in the order you want, and combine them into one
+      WAV file — entirely in your browser. Need to cut a clip down instead? Try{" "}
+      <Link className={inlineLinkClass} href="/tools/audio-trimmer">
+        Audio Trimmer
+      </Link>
+      .
+    </ToolIntro>
+  );
+}
+
+const audioJoinerUseCases: UseCase[] = [
+  {
+    title: "Combine voice memos",
+    description: "Stitch several short recordings together into one continuous file.",
+  },
+  {
+    title: "Build an intro and outro",
+    description: "Join an intro clip, main recording, and outro into a single finished file.",
+  },
+  {
+    title: "Merge separately recorded segments",
+    description: "Combine audio that was recorded in multiple takes into one clip, in order.",
+  },
+];
+
+const audioJoinerFaq: FAQItem[] = [
+  {
+    question: "Is my audio uploaded anywhere?",
+    answer: "No. Decoding, joining, preview playback, and export all happen locally in your browser.",
+  },
+  {
+    question: "What audio formats can I upload?",
+    answer:
+      "Whatever your browser's built-in audio decoder supports — most browsers handle MP3, WAV, M4A, and OGG. Any file that can't be decoded is reported clearly and skipped rather than silently breaking the join.",
+  },
+  {
+    question: "What if my files have different sample rates or channel counts?",
+    answer:
+      "The output uses the first file's sample rate and channel count. Other files are resampled to match, and mono/stereo are converted as needed — mono is duplicated to both output channels, stereo is downmixed to mono if needed.",
+  },
+  {
+    question: "Can I reorder files after adding them?",
+    answer: "Yes. Use the Up and Down buttons on each file to arrange them in the order you want before joining.",
+  },
+  {
+    question: "Is there a limit on file size or number of files?",
+    answer: "Yes — both are limited to keep the join safe to run in your browser's memory, with a clear message if you go over.",
+  },
+];
+
+const audioJoinerSteps: HowItWorksStep[] = [
+  {
+    title: "Add your audio files",
+    description: "Choose or drop two or more audio files your browser can decode.",
+  },
+  {
+    title: "Arrange the order",
+    description: "Use Up and Down to put the files in the order you want, then preview the sequence.",
+  },
+  {
+    title: "Join and download",
+    description: "Export the combined clip as a WAV file and download it with a custom filename.",
+  },
+];
+
+const audioJoinerMetadata: Metadata = createSeoMetadata({
+  title: "Audio Joiner | Combine Audio Files Online | TinyUtility",
+  description:
+    "Combine multiple audio clips into one file online for free, entirely in your browser. Arrange the order, preview the sequence, and export a WAV file.",
+  path: "/tools/audio-joiner",
+});
+
+function AudioSpeedChangerIntro() {
+  return (
+    <ToolIntro>
+      Upload an audio clip, choose a speed from 0.5x to 2x, preview it, and export the result as
+      a new WAV file — entirely in your browser. Changing speed also changes pitch: faster
+      audio sounds higher, slower audio sounds lower. Need to cut a clip down instead? Try{" "}
+      <Link className={inlineLinkClass} href="/tools/audio-trimmer">
+        Audio Trimmer
+      </Link>
+      .
+    </ToolIntro>
+  );
+}
+
+const audioSpeedChangerUseCases: UseCase[] = [
+  {
+    title: "Speed up a lecture or podcast",
+    description: "Get through a long recording faster by exporting it at 1.5x or 2x speed.",
+  },
+  {
+    title: "Slow down audio for practice",
+    description: "Study a fast passage of music or speech by slowing it down to half speed.",
+  },
+  {
+    title: "Match a clip to a video's pace",
+    description: "Speed up or slow down a voiceover or sound effect to fit a fixed-length video.",
+  },
+];
+
+const audioSpeedChangerFaq: FAQItem[] = [
+  {
+    question: "Is my audio uploaded anywhere?",
+    answer: "No. Decoding, preview playback, speed processing, and export all happen locally in your browser.",
+  },
+  {
+    question: "Does changing speed also change pitch?",
+    answer:
+      "Yes. This tool changes speed the same way a native playback-speed control does — faster audio also sounds higher-pitched, and slower audio sounds lower-pitched. It doesn't do pitch-preserving time-stretching.",
+  },
+  {
+    question: "What speeds can I choose?",
+    answer: "Anywhere from 0.5x (half speed) to 2x (double speed), using a preset button or a custom value.",
+  },
+  {
+    question: "Can I preview the speed before exporting?",
+    answer: "Yes. Preview plays the clip at your selected speed before you export anything.",
+  },
+  {
+    question: "What audio formats can I upload?",
+    answer:
+      "Whatever your browser's built-in audio decoder supports — most browsers handle MP3, WAV, M4A, and OGG. If a file can't be decoded, you'll see a clear message rather than a silent failure.",
+  },
+];
+
+const audioSpeedChangerSteps: HowItWorksStep[] = [
+  {
+    title: "Upload an audio file",
+    description: "Choose or drop an audio file your browser can decode.",
+  },
+  {
+    title: "Choose a speed",
+    description: "Pick a preset from 0.5x to 2x, or type a custom value, then preview it.",
+  },
+  {
+    title: "Change speed and download",
+    description: "Export the result as a WAV file and download it with a custom filename.",
+  },
+];
+
+const audioSpeedChangerMetadata: Metadata = createSeoMetadata({
+  title: "Audio Speed Changer | Speed Up or Slow Down Audio | TinyUtility",
+  description:
+    "Speed up or slow down an audio clip online for free, entirely in your browser. Choose a speed from 0.5x to 2x, preview it, and export a WAV file.",
+  path: "/tools/audio-speed-changer",
+});
+
+function AudioVolumeChangerIntro() {
+  return (
+    <ToolIntro>
+      Upload an audio clip, adjust its volume in decibels, preview the result, and export it as
+      a new WAV file — entirely in your browser. Boosting volume too far can cause clipping, so
+      this tool predicts and warns you about it before you export. Need to change playback speed
+      instead? Try{" "}
+      <Link className={inlineLinkClass} href="/tools/audio-speed-changer">
+        Audio Speed Changer
+      </Link>
+      .
+    </ToolIntro>
+  );
+}
+
+const audioVolumeChangerUseCases: UseCase[] = [
+  {
+    title: "Boost a quiet recording",
+    description: "Raise the volume of a voice memo or field recording that came out too quiet.",
+  },
+  {
+    title: "Turn down a loud clip",
+    description: "Lower the volume of a clip that's louder than the rest of your project.",
+  },
+  {
+    title: "Match levels across clips",
+    description: "Even out volume differences between clips recorded at different times.",
+  },
+];
+
+const audioVolumeChangerFaq: FAQItem[] = [
+  {
+    question: "Is my audio uploaded anywhere?",
+    answer: "No. Decoding, preview playback, volume processing, and export all happen locally in your browser.",
+  },
+  {
+    question: "What does changing volume do?",
+    answer:
+      "Volume adjustment changes the amplitude of the audio without changing its duration. -6 dB makes it quieter, 0 dB leaves it unchanged, and +6 dB makes it approximately twice as loud.",
+  },
+  {
+    question: "What is clipping?",
+    answer:
+      "Boosting audio too much can push samples past the loudest representable level, which clips and can sound distorted. This tool predicts clipping from the source audio and warns you before you export.",
+  },
+  {
+    question: "Can I preview the volume before exporting?",
+    answer: "Yes. Preview plays the clip at your selected volume before you export anything.",
+  },
+  {
+    question: "What audio formats can I upload?",
+    answer:
+      "Whatever your browser's built-in audio decoder supports — most browsers handle MP3, WAV, M4A, and OGG. If a file can't be decoded, you'll see a clear message rather than a silent failure.",
+  },
+];
+
+const audioVolumeChangerSteps: HowItWorksStep[] = [
+  {
+    title: "Upload an audio file",
+    description: "Choose or drop an audio file your browser can decode.",
+  },
+  {
+    title: "Choose a volume",
+    description: "Pick a preset from -12 dB to +12 dB, or drag the slider, then preview it.",
+  },
+  {
+    title: "Change volume and download",
+    description: "Export the result as a WAV file and download it with a custom filename.",
+  },
+];
+
+const audioVolumeChangerMetadata: Metadata = createSeoMetadata({
+  title: "Audio Volume Changer | Increase or Decrease Audio Volume | TinyUtility",
+  description:
+    "Increase or decrease the volume of an audio clip online for free, entirely in your browser. Adjust in decibels, preview it, and export a WAV file.",
+  path: "/tools/audio-volume-changer",
+});
+
 const passwordGeneratorMetadata: Metadata = createSeoMetadata({
   title: "Free Password Generator | TinyUtility",
   description:
@@ -1895,6 +2274,26 @@ export async function generateMetadata({ params }: ToolPageProps) {
     return regexTesterMetadata;
   }
 
+  if (slug === "image-to-text") {
+    return imageToTextMetadata;
+  }
+
+  if (slug === "audio-trimmer") {
+    return audioTrimmerMetadata;
+  }
+
+  if (slug === "audio-joiner") {
+    return audioJoinerMetadata;
+  }
+
+  if (slug === "audio-speed-changer") {
+    return audioSpeedChangerMetadata;
+  }
+
+  if (slug === "audio-volume-changer") {
+    return audioVolumeChangerMetadata;
+  }
+
   if (slug === "password-generator") {
     return passwordGeneratorMetadata;
   }
@@ -1965,6 +2364,16 @@ export default async function ToolPage({ params }: ToolPageProps) {
                           ? timestampConverterFaq
                           : slug === "regex-tester"
                             ? regexTesterFaq
+                            : slug === "image-to-text"
+                              ? imageToTextFaq
+                              : slug === "audio-trimmer"
+                                ? audioTrimmerFaq
+                                : slug === "audio-joiner"
+                                  ? audioJoinerFaq
+                                  : slug === "audio-speed-changer"
+                                    ? audioSpeedChangerFaq
+                                    : slug === "audio-volume-changer"
+                                      ? audioVolumeChangerFaq
                   : [];
 
   const categorySlug = toolCategories.find((category) => category.title === tool.category)?.slug;
@@ -1999,6 +2408,11 @@ export default async function ToolPage({ params }: ToolPageProps) {
   const isUuidGenerator = slug === "uuid-generator";
   const isTimestampConverter = slug === "timestamp-converter";
   const isRegexTester = slug === "regex-tester";
+  const isImageToText = slug === "image-to-text";
+  const isAudioTrimmer = slug === "audio-trimmer";
+  const isAudioJoiner = slug === "audio-joiner";
+  const isAudioSpeedChanger = slug === "audio-speed-changer";
+  const isAudioVolumeChanger = slug === "audio-volume-changer";
 
   return (
     <ToolLayout>
@@ -2028,7 +2442,12 @@ export default async function ToolPage({ params }: ToolPageProps) {
             isUrlEncoderDecoder ||
             isUuidGenerator ||
             isTimestampConverter ||
-            isRegexTester
+            isRegexTester ||
+            isImageToText ||
+            isAudioTrimmer ||
+            isAudioJoiner ||
+            isAudioSpeedChanger ||
+            isAudioVolumeChanger
               ? null
               : undefined
           }
@@ -2216,6 +2635,46 @@ export default async function ToolPage({ params }: ToolPageProps) {
             <RegexTesterTool />
             <HowItWorks steps={regexTesterSteps} title="Private regex testing in your browser" />
             <UseCases items={regexTesterUseCases} />
+          </>
+        ) : null}
+        {isImageToText ? (
+          <>
+            <ImageToTextIntro />
+            <ImageToTextTool />
+            <HowItWorks steps={imageToTextSteps} title="Private OCR in your browser" />
+            <UseCases items={imageToTextUseCases} />
+          </>
+        ) : null}
+        {isAudioTrimmer ? (
+          <>
+            <AudioTrimmerIntro />
+            <AudioTrimmerTool />
+            <HowItWorks steps={audioTrimmerSteps} title="Private audio trimming in your browser" />
+            <UseCases items={audioTrimmerUseCases} />
+          </>
+        ) : null}
+        {isAudioJoiner ? (
+          <>
+            <AudioJoinerIntro />
+            <AudioJoinerTool />
+            <HowItWorks steps={audioJoinerSteps} title="Private audio joining in your browser" />
+            <UseCases items={audioJoinerUseCases} />
+          </>
+        ) : null}
+        {isAudioSpeedChanger ? (
+          <>
+            <AudioSpeedChangerIntro />
+            <AudioSpeedChangerTool />
+            <HowItWorks steps={audioSpeedChangerSteps} title="Private audio speed changing in your browser" />
+            <UseCases items={audioSpeedChangerUseCases} />
+          </>
+        ) : null}
+        {isAudioVolumeChanger ? (
+          <>
+            <AudioVolumeChangerIntro />
+            <AudioVolumeChangerTool />
+            <HowItWorks steps={audioVolumeChangerSteps} title="Private audio volume changing in your browser" />
+            <UseCases items={audioVolumeChangerUseCases} />
           </>
         ) : null}
         <FAQSection items={faqItems} />

@@ -1,5 +1,9 @@
 import {
   ArchiveIcon,
+  AudioJoinIcon,
+  AudioSpeedIcon,
+  AudioTrimIcon,
+  AudioVolumeIcon,
   CleanPdfIcon,
   CodeIcon,
   CompareIcon,
@@ -10,6 +14,7 @@ import {
   FindReplaceIcon,
   IdTagIcon,
   ImageIcon,
+  ImageToTextIcon,
   LinkEncodeIcon,
   MergeIcon,
   PdfIcon,
@@ -31,6 +36,10 @@ type ToolIconProps = {
 
 const iconMap = {
   archive: ArchiveIcon,
+  audioJoin: AudioJoinIcon,
+  audioSpeed: AudioSpeedIcon,
+  audioTrim: AudioTrimIcon,
+  audioVolume: AudioVolumeIcon,
   clean: CleanPdfIcon,
   code: CodeIcon,
   compare: CompareIcon,
@@ -40,6 +49,7 @@ const iconMap = {
   findReplace: FindReplaceIcon,
   idTag: IdTagIcon,
   image: ImageIcon,
+  imageToText: ImageToTextIcon,
   linkEncode: LinkEncodeIcon,
   merge: MergeIcon,
   pdf: PdfIcon,
