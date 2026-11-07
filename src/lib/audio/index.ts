@@ -52,3 +52,19 @@ export {
 } from "./volume";
 export type { GainedPcm } from "./volume";
 export type { PcmSource, TimeSelection } from "./types";
+export {
+  amplitudeToDbfs,
+  dbfsToAmplitude,
+  defaultNormalizeTargetDb,
+  isNormalizeTargetValid,
+  largeBoostWarningDb,
+  maxNormalizeTargetDb,
+  minNormalizeTargetDb,
+  normalizePcmSource,
+  normalizeTargetPresets,
+  planNormalization,
+} from "./normalize";
+export type { NormalizePlan, NormalizeResult } from "./normalize";
+export { reversePcmSource } from "./reverse";
+export { applyFade, envelopeAt, fadeCurves, fadeGain, maxFadeSeconds, planFade } from "./fade";
+export type { FadeCurve, FadeOptions, FadePlan, FadeResult } from "./fade";

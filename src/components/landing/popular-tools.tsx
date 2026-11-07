@@ -8,8 +8,8 @@ export function PopularTools() {
       <div className="mx-auto max-w-7xl">
         <SectionHeading
           eyebrow="Popular Tools"
-          title="First utilities on the roadmap."
-          description="Fast, free online utilities available today, with many more coming soon."
+          title="Free utilities, ready to use."
+          description="Fast, free online utilities available today, with more added regularly."
         />
 
         <div className="mt-6 grid auto-rows-fr grid-cols-1 gap-2.5 sm:mt-12 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">

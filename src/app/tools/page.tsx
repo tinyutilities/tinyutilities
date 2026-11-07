@@ -6,7 +6,7 @@ import { createSeoMetadata } from "@/lib/seo";
 
 export const metadata = createSeoMetadata({
   title: "Tools | TinyUtility",
-  description: "Browse free online utilities for images, PDFs, text, developers, and productivity.",
+  description: "Browse free online utilities for audio, images, PDFs, text, developers, and files. Every tool runs privately in your browser.",
   path: "/tools",
 });
 

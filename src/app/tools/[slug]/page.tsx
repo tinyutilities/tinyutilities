@@ -36,6 +36,8 @@ import { PdfPageExtractorTool } from "@/features/tools/pdf-page-extractor/pdf-pa
 import { PdfSplitterTool } from "@/features/tools/pdf-splitter/pdf-splitter-tool";
 import { QrCodeGeneratorTool } from "@/features/tools/qr-code-generator/qr-code-generator-tool";
 import { getRelatedTools, getToolBySlug, toolCategories, tools, type Tool } from "@/features/tools/tool-data";
+import { RegisteredToolPage } from "@/features/tools/registered-tool-page";
+import { toolPageContent } from "@/features/tools/tool-page-content";
 import { WordCounterTool } from "@/features/tools/word-counter/word-counter-tool";
 import { ZipCreatorTool } from "@/features/tools/zip-creator/zip-creator-tool";
 import { ZipExtractorTool } from "@/features/tools/zip-extractor/zip-extractor-tool";
@@ -2050,10 +2052,11 @@ const audioSpeedChangerMetadata: Metadata = createSeoMetadata({
 function AudioVolumeChangerIntro() {
   return (
     <ToolIntro>
-      Upload an audio clip, adjust its volume in decibels, preview the result, and export it as
-      a new WAV file — entirely in your browser. Boosting volume too far can cause clipping, so
-      this tool predicts and warns you about it before you export. Need to change playback speed
-      instead? Try{" "}
+      Upload an audio clip, make it louder or quieter in decibels, or normalize it so its
+      loudest point hits a level you choose, then preview the result and export a new WAV file —
+      entirely in your browser. Boosting volume too far can cause clipping, so this tool
+      predicts and warns you about it before you export. Need to change playback speed instead?
+      Try{" "}
       <Link className={inlineLinkClass} href="/tools/audio-speed-changer">
         Audio Speed Changer
       </Link>
@@ -2075,6 +2078,10 @@ const audioVolumeChangerUseCases: UseCase[] = [
     title: "Match levels across clips",
     description: "Even out volume differences between clips recorded at different times.",
   },
+  {
+    title: "Normalize before sharing",
+    description: "Bring a clip's loudest point to -1 dB so it is as loud as it can safely be without clipping.",
+  },
 ];
 
 const audioVolumeChangerFaq: FAQItem[] = [
@@ -2093,6 +2100,16 @@ const audioVolumeChangerFaq: FAQItem[] = [
       "Boosting audio too much can push samples past the loudest representable level, which clips and can sound distorted. This tool predicts clipping from the source audio and warns you before you export.",
   },
   {
+    question: "What does normalize do?",
+    answer:
+      "Normalize finds the loudest sample in the clip and applies one gain to the whole clip so that sample reaches the level you choose, such as -1 dBFS. Everything stays in proportion, stereo balance is kept, and because the target is never above full scale, it can't clip.",
+  },
+  {
+    question: "Is normalizing the same as making audio equally loud?",
+    answer:
+      "No. This is peak normalization, which only looks at the loudest single sample. Two clips with the same peak can still sound different in loudness. It does not measure perceived loudness (LUFS) or compress dynamics. Normalizing a very quiet clip also raises its background noise, and the tool warns you about large boosts.",
+  },
+  {
     question: "Can I preview the volume before exporting?",
     answer: "Yes. Preview plays the clip at your selected volume before you export anything.",
   },
@@ -2109,8 +2126,8 @@ const audioVolumeChangerSteps: HowItWorksStep[] = [
     description: "Choose or drop an audio file your browser can decode.",
   },
   {
-    title: "Choose a volume",
-    description: "Pick a preset from -12 dB to +12 dB, or drag the slider, then preview it.",
+    title: "Choose a volume or normalize",
+    description: "Pick a level from -12 dB to +12 dB, or switch to Normalize and choose a target peak, then preview it.",
   },
   {
     title: "Change volume and download",
@@ -2119,9 +2136,9 @@ const audioVolumeChangerSteps: HowItWorksStep[] = [
 ];
 
 const audioVolumeChangerMetadata: Metadata = createSeoMetadata({
-  title: "Audio Volume Changer | Increase or Decrease Audio Volume | TinyUtility",
+  title: "Audio Volume Changer & Normalizer | TinyUtility",
   description:
-    "Increase or decrease the volume of an audio clip online for free, entirely in your browser. Adjust in decibels, preview it, and export a WAV file.",
+    "Increase, decrease, or normalize the volume of an audio clip online for free, entirely in your browser. Preview it and export a WAV file.",
   path: "/tools/audio-volume-changer",
 });
 
@@ -2188,6 +2205,16 @@ export async function generateMetadata({ params }: ToolPageProps) {
     return {
       title: "Tool Not Found | TinyUtility",
     };
+  }
+
+  const registeredContent = toolPageContent[slug];
+
+  if (registeredContent) {
+    return createSeoMetadata({
+      title: registeredContent.seoTitle,
+      description: registeredContent.seoDescription,
+      path: `/tools/${tool.slug}`,
+    });
   }
 
   if (slug === "image-compressor") {
@@ -2317,8 +2344,11 @@ export default async function ToolPage({ params }: ToolPageProps) {
     notFound();
   }
 
-  const faqItems =
-    slug === "password-generator"
+  const registeredContent = toolPageContent[slug];
+
+  const faqItems = registeredContent
+    ? registeredContent.faq
+    : slug === "password-generator"
       ? passwordGeneratorFaq
       : slug === "image-to-pdf"
         ? imageToPdfFaq
@@ -2420,6 +2450,7 @@ export default async function ToolPage({ params }: ToolPageProps) {
         <Breadcrumbs items={breadcrumbItems} />
         <ToolHeader
           statusLabel={
+            registeredContent ||
             isPasswordGenerator ||
             isImageToPdf ||
             isPdfMerger ||
@@ -2677,6 +2708,7 @@ export default async function ToolPage({ params }: ToolPageProps) {
             <UseCases items={audioVolumeChangerUseCases} />
           </>
         ) : null}
+        {registeredContent ? <RegisteredToolPage content={registeredContent} slug={slug} /> : null}
         <FAQSection items={faqItems} />
         <RelatedTools tools={getRelatedTools(slug)} />
       </ToolContainer>

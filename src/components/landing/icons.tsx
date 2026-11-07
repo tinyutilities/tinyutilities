@@ -380,3 +380,204 @@ export function AudioVolumeIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function Base64Icon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 7h9" />
+      <path d="M4 12h16" />
+      <path d="M4 17h9" />
+      <path d="m17 5 3 2-3 2" />
+      <path d="m17 15 3 2-3 2" />
+    </svg>
+  );
+}
+
+export function CaseConvertIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m3 18 5-12 5 12" />
+      <path d="M5 14h6" />
+      <circle cx="18" cy="15" r="3" />
+      <path d="M21 12v6" />
+    </svg>
+  );
+}
+
+export function LineSortIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 6h9" />
+      <path d="M4 12h6" />
+      <path d="M4 18h3" />
+      <path d="M17 5v14" />
+      <path d="m14 16 3 3 3-3" />
+    </svg>
+  );
+}
+
+export function HashIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m9 4-2 16" />
+      <path d="m17 4-2 16" />
+      <path d="M4 9h16" />
+      <path d="M3 15h16" />
+    </svg>
+  );
+}
+
+export function TokenIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="8" cy="12" r="4" />
+      <path d="M12 12h9" />
+      <path d="M18 12v3" />
+      <path d="M15 12v2" />
+    </svg>
+  );
+}
+
+export function PaletteIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 1.5-2-.6-1.2.3-2.5 1.7-2.5H17a4 4 0 0 0 4-4C21 6.5 17 3 12 3Z" />
+      <path d="M7.5 11h.01" />
+      <path d="M10 7.5h.01" />
+      <path d="M14.5 7.5h.01" />
+    </svg>
+  );
+}
+
+export function TableConvertIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 5h10v14H4z" />
+      <path d="M4 10h10" />
+      <path d="M9 5v14" />
+      <path d="M16 9h4m-2-2 2 2-2 2" />
+      <path d="M20 16h-4m2-2-2 2 2 2" />
+    </svg>
+  );
+}
+
+export function PageNumberIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 3h9l4 4v14H6z" />
+      <path d="M15 3v4h4" />
+      <path d="M9 9h5" />
+      <path d="M9 12h6" />
+      <path d="M11 17h2" />
+    </svg>
+  );
+}
+
+export function WatermarkIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 3h9l4 4v14H6z" />
+      <path d="M15 3v4h4" />
+      <path d="m9 18 6-6" />
+      <path d="m9 14 4-4" />
+      <path d="m13 18 3-3" />
+    </svg>
+  );
+}
+
+export function PdfImageIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 4h8l3 3v5" />
+      <path d="M4 4v14h6" />
+      <path d="M12 21h8V13h-8z" />
+      <path d="m13 19 2-3 2 2 1-1 1 2" />
+    </svg>
+  );
+}
+
+export function YamlIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 5h5" />
+      <path d="M6 9h8" />
+      <path d="M6 13h5" />
+      <path d="M9 17h9" />
+      <path d="m15 5 2 2 3-3" />
+    </svg>
+  );
+}
+
+export function DatabaseIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <ellipse cx="12" cy="6" rx="7" ry="3" />
+      <path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6" />
+      <path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6" />
+    </svg>
+  );
+}
+
+export function MarkdownIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3 6h18v12H3z" />
+      <path d="M6 15V9l2.5 3L11 9v6" />
+      <path d="M15 9v6" />
+      <path d="m13 13 2 2 2-2" />
+    </svg>
+  );
+}
+
+export function AudioReverseIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 10v4h4l5 4V6l-5 4H4Z" />
+      <path d="m17 9-3 3 3 3" />
+      <path d="m21 9-3 3 3 3" />
+    </svg>
+  );
+}
+
+export function AudioFadeIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3 18V8" />
+      <path d="M3 13c4-9 14-9 18 0" />
+      <path d="M3 18h18" />
+    </svg>
+  );
+}
+
+export function MetadataTagIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="3" y="3" width="18" height="14" rx="2" />
+      <circle cx="9" cy="9" r="1.5" />
+      <path d="m3 14 5-4 4 3 3-2 6 4" />
+      <path d="M8 21h8" />
+    </svg>
+  );
+}
+
+export function FaviconIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="3" y="3" width="8" height="8" rx="1.5" />
+      <rect x="13" y="3" width="8" height="8" rx="1.5" />
+      <rect x="3" y="13" width="8" height="8" rx="1.5" />
+      <circle cx="17" cy="17" r="4" />
+    </svg>
+  );
+}
+
+export function PaletteExtractIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 1.5-2-.6-1.2.3-2.5 1.7-2.5H17a4 4 0 0 0 4-4C21 6.5 17 3 12 3Z" />
+      <circle cx="7.5" cy="11" r="1.4" />
+      <circle cx="10" cy="7.5" r="1.4" />
+      <circle cx="14.5" cy="7.5" r="1.4" />
+    </svg>
+  );
+}

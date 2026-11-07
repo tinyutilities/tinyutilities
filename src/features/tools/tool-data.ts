@@ -2,37 +2,56 @@ export type ToolCategory = {
   title: string;
   description: string;
   slug: string;
+  /** Derived from `tools` below — never edit by hand. */
   toolCount: number;
 };
 
 export type ToolIconName =
   | "archive"
+  | "audioFade"
   | "audioJoin"
   | "audioSpeed"
+  | "audioReverse"
   | "audioTrim"
   | "audioVolume"
+  | "base64"
+  | "caseConvert"
   | "clean"
   | "code"
   | "compare"
   | "convert"
   | "crop"
+  | "database"
+  | "favicon"
   | "extract"
   | "findReplace"
+  | "hash"
   | "idTag"
   | "image"
   | "imageToText"
+  | "lineSort"
   | "linkEncode"
+  | "markdown"
   | "merge"
+  | "metadataTag"
+  | "palette"
+  | "paletteExtract"
+  | "pageNumber"
   | "pdf"
+  | "pdfImage"
   | "qr"
   | "regex"
   | "resize"
   | "rotate"
   | "shield"
   | "split"
+  | "tableConvert"
   | "text"
   | "timeConvert"
-  | "unarchive";
+  | "token"
+  | "unarchive"
+  | "watermark"
+  | "yaml";
 
 export type Tool = {
   title: string;
@@ -46,42 +65,36 @@ export type Tool = {
   keywords?: string[];
 };
 
-export const toolCategories: ToolCategory[] = [
+const categoryDefinitions: Omit<ToolCategory, "toolCount">[] = [
   {
     title: "Audio Tools",
     description: "Edit and export audio clips directly in your browser.",
     slug: "audio",
-    toolCount: 4,
   },
   {
     title: "Image Tools",
     description: "Compress, convert, and prepare images for the web.",
     slug: "image",
-    toolCount: 4,
   },
   {
     title: "PDF Tools",
     description: "Combine, convert, and organize document workflows.",
     slug: "pdf",
-    toolCount: 7,
   },
   {
     title: "Developer Tools",
     description: "Format, generate, and inspect common developer assets.",
     slug: "developer",
-    toolCount: 7,
   },
   {
     title: "Text Tools",
     description: "Count, clean, and transform everyday text.",
     slug: "text",
-    toolCount: 4,
   },
   {
     title: "File Tools",
     description: "Package and manage files directly in your browser.",
     slug: "files",
-    toolCount: 2,
   },
 ];
 
@@ -115,12 +128,30 @@ export const tools: Tool[] = [
   },
   {
     title: "Audio Volume Changer",
-    description: "Increase or decrease the volume of an audio clip and export the result as a new file.",
+    description: "Increase, decrease, or normalize the volume of an audio clip and export the result as a new file.",
     blurb: "Change audio volume",
     slug: "audio-volume-changer",
     category: "Audio Tools",
     icon: "audioVolume",
-    keywords: ["audio volume", "change volume", "increase volume", "decrease volume", "gain", "decibel", "louder audio", "quieter audio", "wav volume changer"],
+    keywords: ["audio volume", "change volume", "increase volume", "decrease volume", "gain", "decibel", "louder audio", "quieter audio", "wav volume changer", "normalize audio", "audio normalizer", "peak normalize", "normalize volume"],
+  },
+  {
+    title: "Audio Reverse",
+    description: "Reverse an audio clip so it plays backwards and export the result as a new file.",
+    blurb: "Reverse audio clips",
+    slug: "audio-reverse",
+    category: "Audio Tools",
+    icon: "audioReverse",
+    keywords: ["reverse audio", "backwards audio", "flip audio", "reverse sound", "audio backwards", "play audio in reverse"],
+  },
+  {
+    title: "Audio Fade In / Fade Out",
+    description: "Add a fade in, fade out, or both to an audio clip and export the result as a new file.",
+    blurb: "Fade audio in & out",
+    slug: "audio-fade",
+    category: "Audio Tools",
+    icon: "audioFade",
+    keywords: ["fade in audio", "fade out audio", "audio fade", "smooth audio start", "smooth audio end", "crossfade"],
   },
   {
     title: "Image Compressor",
@@ -157,6 +188,33 @@ export const tools: Tool[] = [
     category: "Image Tools",
     icon: "crop",
     keywords: ["crop image", "crop photo", "square crop", "aspect ratio crop"],
+  },
+  {
+    title: "Image Metadata Viewer / Cleaner",
+    description: "View a photo's camera, date, and GPS metadata, and remove it before sharing.",
+    blurb: "View & clean image metadata",
+    slug: "image-metadata",
+    category: "Image Tools",
+    icon: "metadataTag",
+    keywords: ["exif viewer", "remove exif data", "strip metadata", "photo metadata", "gps location photo", "exif remover", "clean photo metadata"],
+  },
+  {
+    title: "Favicon Generator",
+    description: "Turn an image into a favicon.ico and the PNG sizes modern browsers and devices need.",
+    blurb: "Generate favicons",
+    slug: "favicon-generator",
+    category: "Image Tools",
+    icon: "favicon",
+    keywords: ["favicon generator", "ico generator", "apple touch icon", "android chrome icon", "site icon", "make a favicon"],
+  },
+  {
+    title: "Image Color Palette Extractor",
+    description: "Pull a copyable color palette out of an image using median-cut quantization.",
+    blurb: "Extract color palettes",
+    slug: "image-palette",
+    category: "Image Tools",
+    icon: "paletteExtract",
+    keywords: ["color palette from image", "extract colors", "image color picker", "dominant colors", "color scheme generator"],
   },
   {
     title: "Image to PDF",
@@ -222,6 +280,33 @@ export const tools: Tool[] = [
     keywords: ["remove pdf metadata", "clean pdf metadata", "pdf author", "pdf privacy"],
   },
   {
+    title: "PDF to Images",
+    description: "Convert PDF pages to PNG, JPEG, or WebP images and download one image or a ZIP.",
+    blurb: "Convert PDF to images",
+    slug: "pdf-to-images",
+    category: "PDF Tools",
+    icon: "pdfImage",
+    keywords: ["pdf to png", "pdf to jpg", "pdf to jpeg", "pdf to image", "convert pdf pages", "pdf screenshot"],
+  },
+  {
+    title: "PDF Page Numbers",
+    description: "Add page numbers to a PDF with the position, format, and starting number you choose.",
+    blurb: "Number PDF pages",
+    slug: "pdf-page-numbers",
+    category: "PDF Tools",
+    icon: "pageNumber",
+    keywords: ["add page numbers to pdf", "number pdf pages", "pdf pagination", "pdf page numbering", "bates numbering"],
+  },
+  {
+    title: "PDF Watermark",
+    description: "Add a text or image watermark to a PDF with adjustable opacity, rotation, and pages.",
+    blurb: "Watermark PDFs",
+    slug: "pdf-watermark",
+    category: "PDF Tools",
+    icon: "watermark",
+    keywords: ["add watermark to pdf", "pdf stamp", "confidential watermark", "draft watermark", "logo on pdf"],
+  },
+  {
     title: "Password Generator",
     description: "Create strong, random passwords privately in your browser.",
     blurb: "Generate passwords",
@@ -285,6 +370,69 @@ export const tools: Tool[] = [
     keywords: ["regex", "regular expression", "regex tester", "pattern matching", "regexp"],
   },
   {
+    title: "Base64 Encoder / Decoder",
+    description: "Encode text or files to Base64 and decode Base64 back, entirely in your browser.",
+    blurb: "Encode & decode Base64",
+    slug: "base64-encoder-decoder",
+    category: "Developer Tools",
+    icon: "base64",
+    keywords: ["base64 encode", "base64 decode", "text to base64", "base64 to text", "image to base64", "file to base64", "data uri", "base64url"],
+  },
+  {
+    title: "Hash Generator",
+    description: "Generate MD5, SHA-1, SHA-256, SHA-384, and SHA-512 hashes for text or files in your browser.",
+    blurb: "Generate hashes",
+    slug: "hash-generator",
+    category: "Developer Tools",
+    icon: "hash",
+    keywords: ["md5", "sha256", "sha1", "sha512", "checksum", "file hash", "hash text", "verify download"],
+  },
+  {
+    title: "JWT Decoder",
+    description: "Decode a JSON Web Token's header and payload in your browser. Decoding does not verify the signature.",
+    blurb: "Decode JWTs",
+    slug: "jwt-decoder",
+    category: "Developer Tools",
+    icon: "token",
+    keywords: ["jwt", "json web token", "decode jwt", "jwt debugger", "bearer token", "token claims"],
+  },
+  {
+    title: "Color Converter",
+    description: "Convert colors between HEX, RGB, HSL, HSV, and CMYK, and check WCAG contrast.",
+    blurb: "Convert colors",
+    slug: "color-converter",
+    category: "Developer Tools",
+    icon: "palette",
+    keywords: ["hex to rgb", "rgb to hex", "hsl", "cmyk", "color picker", "contrast checker", "wcag contrast"],
+  },
+  {
+    title: "JSON ↔ CSV Converter",
+    description: "Convert JSON to CSV and CSV to JSON with proper quoting, delimiters, and clear errors.",
+    blurb: "Convert JSON & CSV",
+    slug: "json-csv-converter",
+    category: "Developer Tools",
+    icon: "tableConvert",
+    keywords: ["json to csv", "csv to json", "csv converter", "json converter", "spreadsheet", "tsv"],
+  },
+  {
+    title: "YAML Formatter / Validator",
+    description: "Validate and format YAML with line-accurate errors, and convert YAML to JSON or JSON to YAML.",
+    blurb: "Format & validate YAML",
+    slug: "yaml-formatter",
+    category: "Developer Tools",
+    icon: "yaml",
+    keywords: ["yaml validator", "yaml lint", "yaml to json", "json to yaml", "format yaml", "yml", "docker compose", "kubernetes yaml"],
+  },
+  {
+    title: "SQL Formatter",
+    description: "Format and beautify SQL for PostgreSQL, MySQL, SQL Server, Oracle, SQLite, BigQuery, and more.",
+    blurb: "Format SQL queries",
+    slug: "sql-formatter",
+    category: "Developer Tools",
+    icon: "database",
+    keywords: ["sql beautifier", "format sql", "sql pretty print", "mysql formatter", "postgres formatter", "t-sql formatter", "sql indent"],
+  },
+  {
     title: "Image to Text",
     description: "Extract editable text from images directly in your browser.",
     blurb: "Extract text from images",
@@ -321,6 +469,33 @@ export const tools: Tool[] = [
     keywords: ["text compare", "diff checker", "compare text", "text comparison", "line diff"],
   },
   {
+    title: "Text Case Converter",
+    description: "Convert text to upper, lower, title, sentence, camelCase, snake_case, kebab-case, and more.",
+    blurb: "Change text case",
+    slug: "text-case-converter",
+    category: "Text Tools",
+    icon: "caseConvert",
+    keywords: ["uppercase", "lowercase", "title case", "sentence case", "camelcase", "snake_case", "kebab-case", "change case"],
+  },
+  {
+    title: "Text Cleaner / Line Sorter",
+    description: "Sort lines, remove duplicate and blank lines, and tidy whitespace in any list or block of text.",
+    blurb: "Clean & sort lines",
+    slug: "text-cleaner-line-sorter",
+    category: "Text Tools",
+    icon: "lineSort",
+    keywords: ["sort lines", "remove duplicate lines", "remove blank lines", "alphabetize", "dedupe", "trim whitespace", "reverse lines"],
+  },
+  {
+    title: "Markdown Editor",
+    description: "Write Markdown with a live, sanitized preview and export clean HTML or a .md file.",
+    blurb: "Edit & preview Markdown",
+    slug: "markdown-editor",
+    category: "Text Tools",
+    icon: "markdown",
+    keywords: ["markdown preview", "markdown to html", "readme editor", "md editor", "github markdown", "live markdown"],
+  },
+  {
     title: "ZIP Creator",
     description: "Combine multiple files into one ZIP archive.",
     blurb: "Create ZIP files",
@@ -339,6 +514,12 @@ export const tools: Tool[] = [
     keywords: ["extract zip", "unzip files", "open zip", "decompress zip", "unpack zip"],
   },
 ];
+
+/** Category list with each `toolCount` derived from the registry, so it can never drift. */
+export const toolCategories: ToolCategory[] = categoryDefinitions.map((category) => ({
+  ...category,
+  toolCount: tools.filter((tool) => tool.category === category.title).length,
+}));
 
 export function getToolBySlug(slug: string) {
   return tools.find((tool) => tool.slug === slug);

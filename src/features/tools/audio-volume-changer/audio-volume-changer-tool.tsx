@@ -25,11 +25,17 @@ import {
   isTotalDecodedSizeSafe,
   estimateDecodedPcmBytes,
   maxUploadFileBytes,
+  defaultNormalizeTargetDb,
+  maxNormalizeTargetDb,
+  minNormalizeTargetDb,
+  normalizePcmSource,
+  normalizeTargetPresets,
+  planNormalization,
   predictOutputPeak,
   useAudioPlayback,
   willClip,
 } from "@/lib/audio";
-import type { WaveformPeaks } from "@/lib/audio";
+import type { PcmSource, WaveformPeaks } from "@/lib/audio";
 import { VolumeWaveformView } from "./volume-waveform-view";
 
 const defaultFilenameBase = "TinyUtility-volume-adjusted";
@@ -40,8 +46,13 @@ type DecodedAudio = {
   peaks: WaveformPeaks;
 };
 
+type VolumeMode = "adjust" | "normalize";
+
 type VolumeResult = {
   blob: Blob;
+  mode: VolumeMode;
+  /** The peak level a normalized clip was brought to; only set in normalize mode. */
+  targetDb: number | null;
   db: number;
   duration: number;
   sampleRate: number;
@@ -76,6 +87,11 @@ function dbDescription(db: number) {
   return `Makes audio louder (${dbLabel(db)}).`;
 }
 
+function dbfsLabel(db: number) {
+  if (!Number.isFinite(db)) return "silence";
+  return `${Number(db.toFixed(1))} dBFS`;
+}
+
 function peakPercent(peak: number) {
   return `${Math.round(Math.min(1, peak) * 100)}%`;
 }
@@ -94,6 +110,8 @@ export function AudioVolumeChangerTool() {
 
   const [audio, setAudio] = useState<DecodedAudio | null>(null);
   const [db, setDb] = useState(0);
+  const [mode, setMode] = useState<VolumeMode>("adjust");
+  const [targetDb, setTargetDb] = useState<number>(defaultNormalizeTargetDb);
   const [phase, setPhase] = useState<UploadPhase>("idle");
   const [stage, setStage] = useState<ProcessingStage>("preparing");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -111,9 +129,19 @@ export function AudioVolumeChangerTool() {
     return computePeakAmplitude(audio.buffer);
   }, [audio]);
 
-  const gain = dbToGain(db);
-  const predictedPeak = predictOutputPeak(sourcePeak, gain);
-  const clipPredicted = willClip(sourcePeak, gain);
+  // In normalize mode the gain isn't chosen by the user: it is whatever moves the loudest sample to
+  // the target level, so it is derived from the clip itself.
+  const normalizePlan = useMemo(
+    () => (mode === "normalize" && audio ? planNormalization(sourcePeak, targetDb) : null),
+    [mode, audio, sourcePeak, targetDb],
+  );
+  const isNormalizing = mode === "normalize";
+  const gain = isNormalizing ? (normalizePlan?.ok ? normalizePlan.gain : 1) : dbToGain(db);
+  const appliedDb = isNormalizing ? (normalizePlan?.ok ? normalizePlan.gainDb : 0) : db;
+  const predictedPeak = isNormalizing ? (normalizePlan?.ok ? normalizePlan.targetPeak : 0) : predictOutputPeak(sourcePeak, gain);
+  // A normalize target is never above full scale, so the result can't clip.
+  const clipPredicted = isNormalizing ? false : willClip(sourcePeak, gain);
+  const canRun = isNormalizing ? Boolean(normalizePlan?.ok) : isDbValid(db);
 
   const addFile = async (fileList: FileList | File[]) => {
     const file = Array.from(fileList)[0];
@@ -178,6 +206,19 @@ export function AudioVolumeChangerTool() {
     setDb(clampDb(next));
   };
 
+  const applyTarget = (next: number) => {
+    if (playback.isPlaying) playback.pause();
+    playback.seek(0);
+    setTargetDb(Math.min(maxNormalizeTargetDb, Math.max(minNormalizeTargetDb, next)));
+  };
+
+  const changeMode = (next: VolumeMode) => {
+    if (next === mode) return;
+    if (playback.isPlaying) playback.pause();
+    playback.seek(0);
+    setMode(next);
+  };
+
   const togglePreview = async () => {
     if (!audio) return;
 
@@ -191,7 +232,7 @@ export function AudioVolumeChangerTool() {
   };
 
   const runChangeVolume = async () => {
-    if (!audio || !isDbValid(db)) return;
+    if (!audio || !canRun) return;
 
     playback.pause();
     setErrorMessage(null);
@@ -209,7 +250,17 @@ export function AudioVolumeChangerTool() {
 
     try {
       setStage("processing");
-      const gained = applyGainToPcmSource(audio.buffer, gain);
+      let gained: PcmSource;
+
+      if (isNormalizing) {
+        const normalized = normalizePcmSource(audio.buffer, targetDb);
+        if (!("output" in normalized)) {
+          throw new Error("This clip is silent, so there is nothing to normalize.");
+        }
+        gained = normalized.output;
+      } else {
+        gained = applyGainToPcmSource(audio.buffer, gain);
+      }
 
       setStage("encoding");
       const blob = encodeWavBlob(gained);
@@ -217,7 +268,9 @@ export function AudioVolumeChangerTool() {
 
       setResult({
         blob,
-        db,
+        mode,
+        targetDb: isNormalizing ? targetDb : null,
+        db: appliedDb,
         duration,
         sampleRate,
         channels: numberOfChannels,
@@ -260,13 +313,18 @@ export function AudioVolumeChangerTool() {
         <SuccessCard
           beforeActions={<FilenameField extension="wav" onChange={setFilenameBase} value={filenameBase} />}
           downloadLabel="Download WAV"
-          heroStat={{ label: "Volume", value: dbLabel(result.db) }}
+          heroStat={
+            result.mode === "normalize" && result.targetDb !== null
+              ? { label: "Normalized peak", value: dbfsLabel(result.targetDb) }
+              : { label: "Volume", value: dbLabel(result.db) }
+          }
           justDownloaded={justDownloaded}
           onDownload={downloadResult}
           onReset={clearAll}
           resetLabel="Change Another File"
           stats={[
             { label: "Duration", value: formatTime(result.duration) },
+            ...(result.mode === "normalize" ? [{ label: "Gain applied", value: dbLabel(result.db) }] : []),
             { label: "Format", value: "WAV (16-bit PCM)" },
             { label: "File size", value: formatBytes(result.blob.size) },
             {
@@ -283,7 +341,7 @@ export function AudioVolumeChangerTool() {
             onClick={backToEditing}
             type="button"
           >
-            Choose a different volume
+            {result.mode === "normalize" ? "Choose a different target" : "Choose a different volume"}
           </button>
         </SuccessCard>
       ) : (
@@ -325,6 +383,98 @@ export function AudioVolumeChangerTool() {
                   playhead={playback.currentTime}
                 />
 
+                <div aria-label="Volume mode" className="flex flex-wrap gap-2" role="radiogroup">
+                  {(
+                    [
+                      { value: "adjust", label: "Set volume" },
+                      { value: "normalize", label: "Normalize" },
+                    ] as const
+                  ).map((option) => {
+                    const isSelected = mode === option.value;
+                    return (
+                      <button
+                        aria-checked={isSelected}
+                        className={`rounded-full border px-5 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-cyan-300/50 disabled:cursor-not-allowed disabled:opacity-50 ${
+                          isSelected
+                            ? "border-cyan-300/60 bg-cyan-300/20 text-white"
+                            : "border-white/15 bg-white/5 text-slate-200 hover:border-cyan-300/40 hover:bg-white/10"
+                        }`}
+                        disabled={isBusy}
+                        key={option.value}
+                        onClick={() => changeMode(option.value)}
+                        role="radio"
+                        type="button"
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {isNormalizing ? (
+                  <fieldset>
+                    <legend className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Target peak level</legend>
+
+                    <div className="mt-3 flex items-center gap-4">
+                      <label className="sr-only" htmlFor="normalize-target-slider">
+                        Target peak level in dBFS
+                      </label>
+                      <input
+                        aria-valuetext={dbfsLabel(targetDb)}
+                        className="h-2 w-full flex-1 cursor-pointer appearance-none rounded-full bg-white/10 accent-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={isBusy}
+                        id="normalize-target-slider"
+                        max={maxNormalizeTargetDb}
+                        min={-12}
+                        onChange={(event) => applyTarget(Number(event.target.value))}
+                        step={0.5}
+                        type="range"
+                        value={targetDb}
+                      />
+                      <output className="w-24 shrink-0 text-right font-mono text-base font-semibold text-white">{dbfsLabel(targetDb)}</output>
+                    </div>
+
+                    <div aria-label="Target preset" className="mt-3 flex flex-wrap gap-2" role="radiogroup">
+                      {normalizeTargetPresets.map((preset) => {
+                        const isSelected = targetDb === preset;
+                        return (
+                          <button
+                            aria-checked={isSelected}
+                            className={`min-w-[4.5rem] rounded-full border px-4 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-cyan-300/50 disabled:cursor-not-allowed disabled:opacity-50 ${
+                              isSelected
+                                ? "border-cyan-300/60 bg-cyan-300/20 text-white"
+                                : "border-white/15 bg-white/5 text-slate-200 hover:border-cyan-300/40 hover:bg-white/10"
+                            }`}
+                            disabled={isBusy}
+                            key={preset}
+                            onClick={() => applyTarget(preset)}
+                            role="radio"
+                            type="button"
+                          >
+                            {preset} dB
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <p className="mt-3 text-sm text-slate-400" role="status">
+                      {normalizePlan?.ok
+                        ? `The loudest point is at ${dbfsLabel(normalizePlan.sourcePeakDb)}. Normalizing applies ${dbLabel(normalizePlan.gainDb)} so it reaches ${dbfsLabel(targetDb)}.`
+                        : normalizePlan && !normalizePlan.ok && normalizePlan.reason === "silent"
+                          ? "This clip is completely silent, so there is nothing to normalize."
+                          : ""}
+                    </p>
+                    {normalizePlan?.ok && normalizePlan.largeBoost ? (
+                      <p className="mt-2 text-sm text-amber-200" role="note">
+                        This is a large boost. It will also make any background noise or hiss much louder.
+                      </p>
+                    ) : null}
+                    <p className="mt-2 text-xs text-slate-500">
+                      Peak normalization sets the loudest sample to the target and keeps everything else in proportion. It does not match
+                      perceived loudness (LUFS).
+                    </p>
+                  </fieldset>
+                ) : (
                 <fieldset>
                   <legend className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Volume</legend>
 
@@ -374,6 +524,7 @@ export function AudioVolumeChangerTool() {
 
                   <p className="mt-3 text-sm text-slate-400">{dbDescription(db)}</p>
                 </fieldset>
+                )}
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
@@ -430,11 +581,11 @@ export function AudioVolumeChangerTool() {
           {audio ? (
             <button
               className="w-full rounded-full bg-gradient-to-r from-[#4F46E5] via-[#06B6D4] to-[#14B8A6] px-6 py-3 text-sm font-semibold text-white shadow-xl shadow-cyan-500/20 transition hover:-translate-y-0.5 hover:shadow-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
-              disabled={isBusy || !isDbValid(db)}
+              disabled={isBusy || !canRun}
               onClick={() => void runChangeVolume()}
               type="button"
             >
-              {phase === "processing" ? "Changing Volume…" : "Change Volume"}
+              {phase === "processing" ? (isNormalizing ? "Normalizing…" : "Changing Volume…") : isNormalizing ? "Normalize Audio" : "Change Volume"}
             </button>
           ) : null}
 
